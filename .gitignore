@@ -1,0 +1,46 @@
+# ===== PlatformIO =====
+.pio/
+.pio/build/
+
+# ===== VSCode =====
+.vscode/
+# nebo:
+# .vscode/*
+# !.vscode/extensions.json
+# !.vscode/settings.json
+
+# ===== OS =====
+.DS_Store
+Thumbs.db
+
+# ===== ESP-IDF build =====
+build/
+
+# ===== ESP-IDF config =====
+sdkconfig
+sdkconfig.old
+sdkconfig.*old
+
+# povolit env-specific configy
+!sdkconfig.*
+
+# ===== ESP-IDF python / cache =====
+__pycache__/
+*.pyc
+idf-env/
+
+# ===== ESP-IDF binaries =====
+*.elf
+*.bin
+*.map
+*.log
+core.*
+
+# ===== CMake =====
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+
+# ===== Ninja =====
+.ninja_log
+.ninja_deps
