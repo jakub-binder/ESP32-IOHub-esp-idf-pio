@@ -3,6 +3,7 @@
 #include "esp_log.h"
 
 #include "app_config.h"
+#include "app_serial_routing.h"
 #include "board/board_pins.h"
 #include "fixtures/fixture.h"
 
@@ -22,6 +23,8 @@ void app_main(void)
 
     ESP_LOGI(APP_LOG_TAG, "UART1 RX/TX   = %d / %d", BOARD_UART1_RX_PIN, BOARD_UART1_TX_PIN);
     ESP_LOGI(APP_LOG_TAG, "I2C1 SDA/SCL  = %d / %d", BOARD_I2C1_SDA_PIN, BOARD_I2C1_SCL_PIN);
+    ESP_LOGI(APP_LOG_TAG, "SERIAL DEBUG  = %s", app_serial_endpoint_to_string(APP_SERIAL_DEBUG_ENDPOINT));
+    ESP_LOGI(APP_LOG_TAG, "SERIAL PROD   = %s", app_serial_endpoint_to_string(APP_SERIAL_PROD_ENDPOINT));
 
     info = fixture_get_info();
     if (info != NULL && info->name != NULL)
