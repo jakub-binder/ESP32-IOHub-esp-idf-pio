@@ -4,7 +4,7 @@
 #include "esp_timer.h"
 
 #include "app_config.h"
-#include "board_pins.h"
+#include "board/board_pins.h"
 
 static const fixture_info_t g_fixture_info =
 {

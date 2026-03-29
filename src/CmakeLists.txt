@@ -7,7 +7,4 @@ idf_component_register(
     INCLUDE_DIRS
         "."
         "../include"
-        "../include/board"
-        "../include/fixtures"
-        "fixtures"
 )

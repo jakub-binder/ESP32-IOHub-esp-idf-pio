@@ -3,7 +3,7 @@
 #include "esp_log.h"
 
 #include "app_config.h"
-#include "board_pins.h"
+#include "board/board_pins.h"
 #include "fixtures/fixture.h"
 
 void app_main(void)
