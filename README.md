@@ -103,6 +103,71 @@ pio device monitor
 
 ---
 
+# Konfigurace PlatformIO
+
+## Struktura platformio.ini
+
+Soubor platformio.ini je rozdělen do čtyř sekcí:
+
+- `[platformio]` – globální nastavení projektu, například výchozí prostředí (`default_envs`)
+- `[env]` – sdílené nastavení pro všechna prostředí (platforma, framework, rychlost monitoru, výchozí `build_flags`)
+- `[env:esp32s3]`, `[env:esp32wroom32]`, `[env:esp32dev_16mb]` – prostředí pro konkrétní desky; každé dědí sdílené nastavení z `[env]` a přidává board-specifické `build_flags`
+
+## build_flags
+
+Každý flag musí být definován právě jednou. Kombinace neplatných hodnot způsobí chybu při překladu.
+
+**Režim aplikace** (povinné, jedno z):
+
+- `-DAPP_MODE_DEBUG` – vývojový režim
+- `-DAPP_MODE_PROD` – produkční režim
+
+**Výběr fixture** (povinné, jedno z):
+
+- `-DFIXTURE_DEFAULT` – výchozí HW konfigurace
+- `-DFIXTURE_PROD` – produkční HW konfigurace
+
+**Výběr desky** (povinné, jedno z):
+
+- `-DBOARD_ESP32S3`
+- `-DBOARD_ESP32WROOM32`
+- `-DBOARD_ESP32DEV_16MB`
+
+**Ostatní:**
+
+- `-DFW_BOARD_NAME=\"...\"` – jméno desky zahrnuté do buildu (např. `"Unites32"`)
+- `-DAPP_ENABLE_APPLICATION_LOGS=1` – zapíná aplikační logy (0 = vypnuto)
+- `-DAPP_COMMAND_ENDPOINT=...` – vybírá komunikační rozhraní pro příkazy (viz níže)
+
+## Command endpoint
+
+Projekt podporuje tato rozhraní pro příjem příkazů:
+
+- `APP_COMMAND_ENDPOINT_UART0` – UART0 (výchozí pro většinu desek)
+- `APP_COMMAND_ENDPOINT_UART1` – UART1 (hardwarový UART, nutná podpora desky)
+- `APP_COMMAND_ENDPOINT_USB_CDC` – USB CDC (pouze ESP32-S3)
+
+Výběr se nastavuje přes `build_flags` v sekci konkrétního prostředí.
+Pokud `APP_COMMAND_ENDPOINT` není explicitně definován, `app_config.h` jej zvolí automaticky:
+
+- `APP_MODE_DEBUG` + `BOARD_ESP32S3` → `USB_CDC`
+- `APP_MODE_DEBUG` + ostatní desky → `UART0`
+- `APP_MODE_PROD` → `UART1`
+
+Pokud zvolené rozhraní deska nepodporuje, překlad selže s chybou.
+
+## Příklad: přepnutí command rozhraní z USB na UART1
+
+V sekci `[env:esp32s3]` v `platformio.ini` nahraď:
+
+    -DAPP_COMMAND_ENDPOINT=APP_COMMAND_ENDPOINT_USB_CDC
+
+za:
+
+    -DAPP_COMMAND_ENDPOINT=APP_COMMAND_ENDPOINT_UART1
+
+---
+
 # Přidání nové desky
 
 1. Přidat env do platformio.ini
