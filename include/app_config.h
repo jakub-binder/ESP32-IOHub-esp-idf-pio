@@ -9,10 +9,40 @@ extern "C" {
  * Application defaults
  * --------------------------- */
 
-#define APP_MAIN_LOOP_DELAY_MS        10
-#define APP_LOG_TAG                   "APP"
-#define APP_FIXTURE_LOG_TAG           "FIXTURE"
-#define APP_ENABLE_APPLICATION_LOGS   1
+#ifndef APP_MAIN_LOOP_DELAY_MS
+#define APP_MAIN_LOOP_DELAY_MS            10
+#endif
+
+#ifndef APP_LOG_TAG
+#define APP_LOG_TAG                       "APP"
+#endif
+
+#ifndef APP_FIXTURE_LOG_TAG
+#define APP_FIXTURE_LOG_TAG               "FIXTURE"
+#endif
+
+#ifndef APP_ENABLE_APPLICATION_LOGS
+#define APP_ENABLE_APPLICATION_LOGS       1
+#endif
+
+#define APP_COMMAND_ENDPOINT_UART0        0
+#define APP_COMMAND_ENDPOINT_UART1        1
+#define APP_COMMAND_ENDPOINT_UART2        2
+#define APP_COMMAND_ENDPOINT_USB_CDC      3
+
+#ifndef APP_COMMAND_ENDPOINT
+#if defined(APP_MODE_DEBUG)
+#if defined(BOARD_ESP32S3)
+#define APP_COMMAND_ENDPOINT              APP_COMMAND_ENDPOINT_USB_CDC
+#else
+#define APP_COMMAND_ENDPOINT              APP_COMMAND_ENDPOINT_UART0
+#endif
+#elif defined(APP_MODE_PROD)
+#define APP_COMMAND_ENDPOINT              APP_COMMAND_ENDPOINT_UART1
+#else
+#error "Application mode is not selected. Define APP_MODE_DEBUG or APP_MODE_PROD."
+#endif
+#endif
 
 /* ---------------------------
  * Build-time mode validation

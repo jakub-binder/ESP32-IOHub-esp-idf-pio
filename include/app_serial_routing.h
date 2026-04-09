@@ -19,16 +19,31 @@ typedef enum
 /* ---------------------------
  * Compile-time endpoint mapping
  * --------------------------- */
-#if defined(APP_MODE_DEBUG)
-#if BOARD_HAS_USB_CDC
+#if (APP_COMMAND_ENDPOINT == APP_COMMAND_ENDPOINT_UART0)
+#define APP_SERIAL_COMMAND_ENDPOINT      APP_SERIAL_ENDPOINT_UART0
+#elif (APP_COMMAND_ENDPOINT == APP_COMMAND_ENDPOINT_UART1)
+#define APP_SERIAL_COMMAND_ENDPOINT      APP_SERIAL_ENDPOINT_UART1
+#elif (APP_COMMAND_ENDPOINT == APP_COMMAND_ENDPOINT_UART2)
+#define APP_SERIAL_COMMAND_ENDPOINT      APP_SERIAL_ENDPOINT_UART2
+#elif (APP_COMMAND_ENDPOINT == APP_COMMAND_ENDPOINT_USB_CDC)
 #define APP_SERIAL_COMMAND_ENDPOINT      APP_SERIAL_ENDPOINT_USB_CDC
 #else
-#define APP_SERIAL_COMMAND_ENDPOINT      APP_SERIAL_ENDPOINT_UART0
+#error "Invalid APP_COMMAND_ENDPOINT value"
 #endif
-#elif defined(APP_MODE_PROD)
-#define APP_SERIAL_COMMAND_ENDPOINT      APP_SERIAL_ENDPOINT_UART1
-#else
-#error "Application mode is not selected. Define APP_MODE_DEBUG or APP_MODE_PROD."
+
+/* ---------------------------
+ * Compile-time endpoint validation
+ * --------------------------- */
+#if (APP_SERIAL_COMMAND_ENDPOINT == APP_SERIAL_ENDPOINT_UART1) && !BOARD_HAS_UART1
+#error "APP_COMMAND_ENDPOINT=UART1 is not supported by selected board"
+#endif
+
+#if (APP_SERIAL_COMMAND_ENDPOINT == APP_SERIAL_ENDPOINT_UART2) && !BOARD_HAS_UART2
+#error "APP_COMMAND_ENDPOINT=UART2 is not supported by selected board"
+#endif
+
+#if (APP_SERIAL_COMMAND_ENDPOINT == APP_SERIAL_ENDPOINT_USB_CDC) && !BOARD_HAS_USB_CDC
+#error "APP_COMMAND_ENDPOINT=USB_CDC is not supported by selected board"
 #endif
 
 static inline const char *app_serial_endpoint_to_string(app_serial_endpoint_t endpoint)
