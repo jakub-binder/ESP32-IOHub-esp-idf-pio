@@ -9,9 +9,9 @@ extern "C" {
 #endif
 
 #if APP_ENABLE_APPLICATION_LOGS
-#define APP_LOGI(tag, format, ...)      ESP_LOGI((tag), (format), ##__VA_ARGS__)
-#define APP_LOGW(tag, format, ...)      ESP_LOGW((tag), (format), ##__VA_ARGS__)
-#define APP_LOGE(tag, format, ...)      ESP_LOGE((tag), (format), ##__VA_ARGS__)
+#define APP_LOGI(tag, format, ...)      ESP_LOGI(tag, format, ##__VA_ARGS__)
+#define APP_LOGW(tag, format, ...)      ESP_LOGW(tag, format, ##__VA_ARGS__)
+#define APP_LOGE(tag, format, ...)      ESP_LOGE(tag, format, ##__VA_ARGS__)
 #else
 #define APP_LOGI(tag, format, ...)      ((void)0)
 #define APP_LOGW(tag, format, ...)      ((void)0)
