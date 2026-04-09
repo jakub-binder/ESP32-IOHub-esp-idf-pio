@@ -12,6 +12,7 @@ extern "C" {
 #define APP_MAIN_LOOP_DELAY_MS        10
 #define APP_LOG_TAG                   "APP"
 #define APP_FIXTURE_LOG_TAG           "FIXTURE"
+#define APP_ENABLE_APPLICATION_LOGS   1
 
 /* ---------------------------
  * Build-time mode validation

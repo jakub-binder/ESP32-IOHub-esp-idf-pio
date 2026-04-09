@@ -1,9 +1,9 @@
 #include "fixtures/fixture_default.h"
 
-#include "esp_log.h"
 #include "esp_timer.h"
 
 #include "app_config.h"
+#include "app_log.h"
 #include "board/board_pins.h"
 
 static const fixture_info_t g_fixture_info =
@@ -20,8 +20,8 @@ const fixture_info_t *fixture_default_get_info(void)
 
 void fixture_default_setup(void)
 {
-    ESP_LOGI(APP_FIXTURE_LOG_TAG, "fixture_default_setup()");
-    ESP_LOGI(APP_FIXTURE_LOG_TAG, "Running on board: %s", BOARD_NAME);
+    APP_LOGI(APP_FIXTURE_LOG_TAG, "fixture_default_setup()");
+    APP_LOGI(APP_FIXTURE_LOG_TAG, "Running on board: %s", BOARD_NAME);
 }
 
 void fixture_default_loop(void)
@@ -32,6 +32,6 @@ void fixture_default_loop(void)
     if ((now_us - g_last_log_time_us) >= period_us)
     {
         g_last_log_time_us = now_us;
-        ESP_LOGI(APP_FIXTURE_LOG_TAG, "[DEFAULT] heartbeat");
+        APP_LOGI(APP_FIXTURE_LOG_TAG, "[DEFAULT] heartbeat");
     }
 }
