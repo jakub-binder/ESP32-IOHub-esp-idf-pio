@@ -34,15 +34,15 @@ typedef enum
 /* ---------------------------
  * Compile-time endpoint validation
  * --------------------------- */
-#if (APP_SERIAL_COMMAND_ENDPOINT == APP_SERIAL_ENDPOINT_UART1) && !BOARD_HAS_UART1
+#if (APP_COMMAND_ENDPOINT == APP_COMMAND_ENDPOINT_UART1) && !BOARD_HAS_UART1
 #error "APP_COMMAND_ENDPOINT=UART1 is not supported by selected board"
 #endif
 
-#if (APP_SERIAL_COMMAND_ENDPOINT == APP_SERIAL_ENDPOINT_UART2) && !BOARD_HAS_UART2
+#if (APP_COMMAND_ENDPOINT == APP_COMMAND_ENDPOINT_UART2) && !BOARD_HAS_UART2
 #error "APP_COMMAND_ENDPOINT=UART2 is not supported by selected board"
 #endif
 
-#if (APP_SERIAL_COMMAND_ENDPOINT == APP_SERIAL_ENDPOINT_USB_CDC) && !BOARD_HAS_USB_CDC
+#if (APP_COMMAND_ENDPOINT == APP_COMMAND_ENDPOINT_USB_CDC) && !BOARD_HAS_USB_CDC
 #error "APP_COMMAND_ENDPOINT=USB_CDC is not supported by selected board"
 #endif
 
