@@ -30,7 +30,7 @@
     (APP_COMMAND_ENDPOINT == APP_COMMAND_ENDPOINT_UART1)
 
 #include "driver/uart.h"
-#include "esp_vfs_dev.h"    /* esp_vfs_dev_uart_use_driver() */
+#include "driver/uart_vfs.h"    /* uart_vfs_dev_use_driver() */
 
 #if (APP_COMMAND_ENDPOINT == APP_COMMAND_ENDPOINT_UART0)
 /* UART0: use the default pins already wired by the bootloader. */
@@ -101,11 +101,11 @@ void app_command_transport_init(void)
 #if (APP_COMMAND_ENDPOINT == APP_COMMAND_ENDPOINT_UART0)
     /* Route VFS (printf / ESP_LOG*) through the installed UART0 driver
      * so that all UART0 I/O is managed by a single driver instance. */
-    esp_vfs_dev_uart_use_driver(TRANSPORT_UART_NUM);
+    uart_vfs_dev_use_driver(TRANSPORT_UART_NUM);
 #endif
 
     BaseType_t ret = xTaskCreate(uart_rx_task, "cmd_transport_rx",
-                                 2048, NULL, 5, NULL);
+                                 4096, NULL, 5, NULL);
     if (ret != pdPASS)
     {
         APP_LOGE(TAG, "xTaskCreate failed for cmd_transport_rx");
@@ -168,7 +168,7 @@ void app_command_transport_init(void)
     }
 
     BaseType_t ret = xTaskCreate(cdc_rx_task, "cmd_transport_rx",
-                                 2048, NULL, 5, NULL);
+                                 4096, NULL, 5, NULL);
     if (ret != pdPASS)
     {
         APP_LOGE(TAG, "xTaskCreate failed for cmd_transport_rx");
