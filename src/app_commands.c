@@ -80,8 +80,8 @@ void app_commands_handle_line_ctx(const app_command_ctx_t *ctx, const char *line
             app_commands_printf_to(output, "ERR not allowed\r\n");
             return;
         }
-        app_commands_printf_to(output, "common: firmware restart init info\r\n");
-        app_commands_printf_to(output, "debug: help ports debug\r\n");
+        app_commands_printf_to(output, "common: firmware, restart, init, info\r\n");
+        app_commands_printf_to(output, "debug: help, ports, debug\r\n");
     }
     else if (strcmp(cmd, "ports") == 0)
     {
