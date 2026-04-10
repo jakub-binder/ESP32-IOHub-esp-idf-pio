@@ -1,0 +1,54 @@
+#include "app_system_info.h"
+
+#include <stdio.h>
+
+#include "app_config.h"
+#include "app_serial_routing.h"
+#include "board/board_pins.h"
+#include "fixtures/fixture.h"
+
+void app_system_info_print(app_command_output_fn output)
+{
+    char line[128];
+    const fixture_info_t *fi;
+
+    if (output == NULL)
+    {
+        return;
+    }
+
+    snprintf(line, sizeof(line), "FW_BOARD_NAME=%s\r\n", FW_BOARD_NAME);
+    output(line);
+
+    snprintf(line, sizeof(line), "BOARD_NAME=%s\r\n", BOARD_NAME);
+    output(line);
+
+#if defined(APP_MODE_DEBUG)
+    output("APP_MODE=DEBUG\r\n");
+#elif defined(APP_MODE_PROD)
+    output("APP_MODE=PROD\r\n");
+#endif
+
+    snprintf(line, sizeof(line), "UART1_RX=%d\r\n", BOARD_UART1_RX_PIN);
+    output(line);
+
+    snprintf(line, sizeof(line), "UART1_TX=%d\r\n", BOARD_UART1_TX_PIN);
+    output(line);
+
+    snprintf(line, sizeof(line), "I2C1_SDA=%d\r\n", BOARD_I2C1_SDA_PIN);
+    output(line);
+
+    snprintf(line, sizeof(line), "I2C1_SCL=%d\r\n", BOARD_I2C1_SCL_PIN);
+    output(line);
+
+    snprintf(line, sizeof(line), "SERIAL_CMD=%s\r\n",
+             app_serial_endpoint_to_string(APP_SERIAL_COMMAND_ENDPOINT));
+    output(line);
+
+    fi = fixture_get_info();
+    if (fi != NULL && fi->name != NULL)
+    {
+        snprintf(line, sizeof(line), "FIXTURE=%s\r\n", fi->name);
+        output(line);
+    }
+}

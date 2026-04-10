@@ -64,6 +64,10 @@ void app_commands_handle_line(const char *line)
     {
         app_command_system_init(g_output);
     }
+    else if (strcmp(cmd, "info") == 0)
+    {
+        app_command_system_info(g_output);
+    }
     else
     {
         app_commands_printf("ERR unknown command: %s\r\n", cmd);
