@@ -71,7 +71,7 @@ src/main.c
 
 Obsahuje pouze:
 - inicializaci
-- výběr fixture
+- výběr fixtury
 - hlavní smyčku
 
 ---
@@ -122,7 +122,7 @@ Každý flag musí být definován právě jednou. Kombinace neplatných hodnot 
 - `-DAPP_MODE_DEBUG` – vývojový režim
 - `-DAPP_MODE_PROD` – produkční režim
 
-**Výběr fixture** (povinné, jedno z):
+**Výběr fixtury** (povinné, jedno z):
 
 - `-DFIXTURE_DEFAULT` – výchozí HW konfigurace
 - `-DFIXTURE_PROD` – produkční HW konfigurace
@@ -177,7 +177,7 @@ za:
 
 ---
 
-# Přidání nové fixture
+# Přidání nové fixtury
 
 1. Vytvořit src/fixtures/fixture_xxx.c
 2. Přidat hlavičku
