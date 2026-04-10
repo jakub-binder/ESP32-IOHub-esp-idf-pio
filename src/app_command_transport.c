@@ -5,9 +5,13 @@
 #include "app_config.h"
 #include "board/board_pins.h"
 #include "app_log.h"
+#include "app_serial_routing.h"
 
 #include "driver/uart.h"
 #include "driver/uart_vfs.h"
+#if CONFIG_SOC_USB_SERIAL_JTAG_SUPPORTED
+#include "driver/usb_serial_jtag.h"
+#endif
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
@@ -24,6 +28,11 @@
 
 /* Max bytes consumed per single uart_read_bytes() call. */
 #define TRANSPORT_READ_CHUNK    64
+#define DIAG_LOG_PERIOD_MS      2000
+
+static volatile uint32_t s_uart0_rx_bytes;
+static volatile uint32_t s_uart1_rx_bytes;
+static volatile uint32_t s_usb_rx_bytes;
 
 /* =====================================================================
  * Static endpoint instances – one per active port.
@@ -66,6 +75,10 @@ static void uart0_rx_task(void *arg)
     {
         len = uart_read_bytes(UART_NUM_0, buf, sizeof(buf),
                               pdMS_TO_TICKS(20));
+        if (len > 0)
+        {
+            s_uart0_rx_bytes += (uint32_t)len;
+        }
         for (int i = 0; i < len; i++)
         {
             app_command_endpoint_on_char(&s_ep_debug, (char)buf[i]);
@@ -83,12 +96,87 @@ static void uart1_rx_task(void *arg)
     {
         len = uart_read_bytes(UART_NUM_1, buf, sizeof(buf),
                               pdMS_TO_TICKS(20));
+        if (len > 0)
+        {
+            s_uart1_rx_bytes += (uint32_t)len;
+        }
         for (int i = 0; i < len; i++)
         {
             app_command_endpoint_on_char(&s_ep_prod, (char)buf[i]);
         }
     }
 }
+
+static void transport_diag_task(void *arg)
+{
+    uint32_t prev_uart0 = 0;
+    uint32_t prev_uart1 = 0;
+    uint32_t prev_usb   = 0;
+    (void)arg;
+
+    while (1)
+    {
+        uint32_t now_uart0 = s_uart0_rx_bytes;
+        uint32_t now_uart1 = s_uart1_rx_bytes;
+        uint32_t now_usb   = s_usb_rx_bytes;
+
+        APP_LOGI(TAG,
+                 "diag rx bytes/2s: UART0=%lu(+%lu) UART1=%lu(+%lu) USBJTAG=%lu(+%lu)",
+                 (unsigned long)now_uart0, (unsigned long)(now_uart0 - prev_uart0),
+                 (unsigned long)now_uart1, (unsigned long)(now_uart1 - prev_uart1),
+                 (unsigned long)now_usb, (unsigned long)(now_usb - prev_usb));
+
+        prev_uart0 = now_uart0;
+        prev_uart1 = now_uart1;
+        prev_usb = now_usb;
+
+        vTaskDelay(pdMS_TO_TICKS(DIAG_LOG_PERIOD_MS));
+    }
+}
+
+#if CONFIG_SOC_USB_SERIAL_JTAG_SUPPORTED
+static void usb_serial_jtag_diag_task(void *arg)
+{
+    uint8_t b;
+    int len;
+    (void)arg;
+
+    while (1)
+    {
+        len = usb_serial_jtag_read_bytes(&b, 1, pdMS_TO_TICKS(20));
+        if (len > 0)
+        {
+            s_usb_rx_bytes += (uint32_t)len;
+            APP_LOGI(TAG, "USB_SERIAL_JTAG RX byte=0x%02X", b);
+        }
+    }
+}
+
+static void init_usb_serial_jtag_diag(void)
+{
+    const usb_serial_jtag_driver_config_t usb_cfg = {
+        .tx_buffer_size = 256,
+        .rx_buffer_size = 256,
+    };
+    esp_err_t err = usb_serial_jtag_driver_install(&usb_cfg);
+    if (err != ESP_OK)
+    {
+        APP_LOGE(TAG, "usb_serial_jtag_driver_install failed: %d", err);
+        return;
+    }
+
+    BaseType_t ret = xTaskCreate(usb_serial_jtag_diag_task, "cmd_rx_usbdiag",
+                                 4096, NULL, 5, NULL);
+    if (ret != pdPASS)
+    {
+        APP_LOGE(TAG, "xTaskCreate failed for cmd_rx_usbdiag");
+    }
+    else
+    {
+        APP_LOGI(TAG, "USB Serial JTAG diagnostic RX task started");
+    }
+}
+#endif
 
 /* =====================================================================
  * UART initialisation helper.
@@ -202,6 +290,23 @@ void app_command_transport_init(void)
             APP_LOGI(TAG, "production port: UART1 initialised");
         }
     }
+
+    BaseType_t diag_ret = xTaskCreate(transport_diag_task, "cmd_rx_diag",
+                                      3072, NULL, 1, NULL);
+    if (diag_ret != pdPASS)
+    {
+        APP_LOGE(TAG, "xTaskCreate failed for cmd_rx_diag");
+    }
+
+#if (APP_SERIAL_COMMAND_ENDPOINT == APP_SERIAL_ENDPOINT_USB_CDC)
+    APP_LOGW(TAG, "APP_COMMAND_ENDPOINT=USB_CDC selected, but command parser is UART-only in current build");
+    APP_LOGW(TAG, "Starting USB Serial JTAG diagnostics only (no command parsing)");
+#if CONFIG_SOC_USB_SERIAL_JTAG_SUPPORTED
+    init_usb_serial_jtag_diag();
+#else
+    APP_LOGE(TAG, "USB Serial JTAG not supported by current target/config");
+#endif
+#endif
 
     /* ---------------------------------------------------------------
      * USB Serial JTAG (ESP32-S3, optional / architectural placeholder).
