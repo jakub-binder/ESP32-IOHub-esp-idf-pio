@@ -23,11 +23,8 @@ void app_system_info_print(app_command_output_fn output)
     snprintf(line, sizeof(line), "BOARD_NAME=%s\r\n", BOARD_NAME);
     output(line);
 
-#if defined(APP_MODE_DEBUG)
-    output("APP_MODE=DEBUG\r\n");
-#elif defined(APP_MODE_PROD)
-    output("APP_MODE=PROD\r\n");
-#endif
+    output("DEBUG_PORT=UART0\r\n");
+    output("PROD_PORT=UART1\r\n");
 
     snprintf(line, sizeof(line), "UART1_RX=%d\r\n", BOARD_UART1_RX_PIN);
     output(line);
