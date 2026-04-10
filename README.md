@@ -148,8 +148,8 @@ Výběr se nastavuje přes `build_flags` v sekci konkrétního prostředí.
 
 Pokud zvolené rozhraní deska nepodporuje, překlad selže s chybou.
 
-Debug-only commandy jsou povoleny pouze na debug portu (`UART0`).
-Na production portu (`UART1`) jsou debug-only commandy odmítnuty.
+Debug-only příkazy jsou povoleny pouze na debug portu (`UART0`).
+Na production portu (`UART1`) jsou debug-only příkazy odmítnuty.
 
 ## Příklad: přepnutí command rozhraní z USB na UART1
 
