@@ -72,19 +72,39 @@ void app_commands_handle_line_ctx(const app_command_ctx_t *ctx, const char *line
     {
         app_command_system_info(output);
     }
-    /* --- Debug-only commands (available only on debug port) ---
-     * No debug-only commands are defined yet.  Add them here with the guard:
-     *
-     *   else if (strcmp(cmd, "debug_cmd") == 0)
-     *   {
-     *       if (!ctx->allow_debug_commands)
-     *       {
-     *           app_commands_printf_to(output, "ERR not allowed\r\n");
-     *           return;
-     *       }
-     *       // ... handle debug_cmd ...
-     *   }
-     */
+    /* --- Debug-only commands (available only on debug port) --- */
+    else if (strcmp(cmd, "help") == 0)
+    {
+        if (!ctx->allow_debug_commands)
+        {
+            app_commands_printf_to(output, "ERR not allowed\r\n");
+            return;
+        }
+        app_commands_printf_to(output, "common: firmware restart init info\r\n");
+        app_commands_printf_to(output, "debug: help ports debug\r\n");
+    }
+    else if (strcmp(cmd, "ports") == 0)
+    {
+        if (!ctx->allow_debug_commands)
+        {
+            app_commands_printf_to(output, "ERR not allowed\r\n");
+            return;
+        }
+        app_commands_printf_to(output, "debug_port=UART0\r\n");
+        app_commands_printf_to(output, "production_port=UART1\r\n");
+        app_commands_printf_to(output, "allow_debug_commands=%d\r\n",
+                               ctx->allow_debug_commands ? 1 : 0);
+    }
+    else if (strcmp(cmd, "debug") == 0)
+    {
+        if (!ctx->allow_debug_commands)
+        {
+            app_commands_printf_to(output, "ERR not allowed\r\n");
+            return;
+        }
+        app_commands_printf_to(output, "DEBUG OK\r\n");
+        app_commands_printf_to(output, "source=%d\r\n", (int)ctx->source);
+    }
     else
     {
         app_commands_printf_to(output, "ERR unknown command: %s\r\n", cmd);

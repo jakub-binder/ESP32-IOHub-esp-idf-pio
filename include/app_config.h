@@ -31,17 +31,7 @@ extern "C" {
 #define APP_COMMAND_ENDPOINT_USB_CDC      3
 
 #ifndef APP_COMMAND_ENDPOINT
-#if defined(APP_MODE_DEBUG)
-#if defined(BOARD_ESP32S3)
-#define APP_COMMAND_ENDPOINT              APP_COMMAND_ENDPOINT_USB_CDC
-#else
-#define APP_COMMAND_ENDPOINT              APP_COMMAND_ENDPOINT_UART0
-#endif
-#elif defined(APP_MODE_PROD)
-#define APP_COMMAND_ENDPOINT              APP_COMMAND_ENDPOINT_UART1
-#else
-#error "Application mode is not selected. Define APP_MODE_DEBUG or APP_MODE_PROD."
-#endif
+#error "APP_COMMAND_ENDPOINT is not defined. Define -DAPP_COMMAND_ENDPOINT=... in platformio.ini."
 #endif
 
 /* ---------------------------
@@ -50,18 +40,6 @@ extern "C" {
 
 #ifndef APP_FIRMWARE_ID
 #define APP_FIRMWARE_ID                   "ESP32-IOHub " FW_BOARD_NAME
-#endif
-
-/* ---------------------------
- * Build-time mode validation
- * --------------------------- */
-
-#if defined(APP_MODE_DEBUG) && defined(APP_MODE_PROD)
-#error "Only one of APP_MODE_DEBUG or APP_MODE_PROD can be defined"
-#endif
-
-#if !defined(APP_MODE_DEBUG) && !defined(APP_MODE_PROD)
-#error "One of APP_MODE_DEBUG or APP_MODE_PROD must be defined"
 #endif
 
 /* ---------------------------

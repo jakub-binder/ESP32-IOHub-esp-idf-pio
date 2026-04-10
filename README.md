@@ -117,11 +117,6 @@ Soubor platformio.ini je rozdělen do čtyř sekcí:
 
 Každý flag musí být definován právě jednou. Kombinace neplatných hodnot způsobí chybu při překladu.
 
-**Režim aplikace** (povinné, jedno z):
-
-- `-DAPP_MODE_DEBUG` – vývojový režim
-- `-DAPP_MODE_PROD` – produkční režim
-
 **Výběr fixtury** (povinné, jedno z):
 
 - `-DFIXTURE_DEFAULT` – výchozí HW konfigurace
@@ -137,7 +132,7 @@ Každý flag musí být definován právě jednou. Kombinace neplatných hodnot 
 
 - `-DFW_BOARD_NAME=\"...\"` – jméno desky zahrnuté do buildu (např. `"Unites32"`)
 - `-DAPP_ENABLE_APPLICATION_LOGS=1` – zapíná aplikační logy (0 = vypnuto)
-- `-DAPP_COMMAND_ENDPOINT=...` – vybírá komunikační rozhraní pro příkazy (viz níže)
+- `-DAPP_COMMAND_ENDPOINT=...` – vybírá komunikační rozhraní pro příkazy (povinné, viz níže)
 
 ## Command endpoint
 
@@ -148,13 +143,13 @@ Projekt podporuje tato rozhraní pro příjem příkazů:
 - `APP_COMMAND_ENDPOINT_USB_CDC` – USB CDC (pouze ESP32-S3)
 
 Výběr se nastavuje přes `build_flags` v sekci konkrétního prostředí.
-Pokud `APP_COMMAND_ENDPOINT` není explicitně definován, `app_config.h` jej zvolí automaticky:
-
-- `APP_MODE_DEBUG` + `BOARD_ESP32S3` → `USB_CDC`
-- `APP_MODE_DEBUG` + ostatní desky → `UART0`
-- `APP_MODE_PROD` → `UART1`
+`APP_COMMAND_ENDPOINT` musí být vždy explicitně definován přes
+`-DAPP_COMMAND_ENDPOINT=...` v `platformio.ini`.
 
 Pokud zvolené rozhraní deska nepodporuje, překlad selže s chybou.
+
+Debug-only commandy jsou povoleny pouze na debug portu (`UART0`).
+Na production portu (`UART1`) jsou debug-only commandy odmítnuty.
 
 ## Příklad: přepnutí command rozhraní z USB na UART1
 
