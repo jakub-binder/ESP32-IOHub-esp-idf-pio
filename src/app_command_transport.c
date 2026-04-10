@@ -41,9 +41,6 @@
 #define TRANSPORT_USB_HEARTBEAT_STACK_SIZE 3072
 #define TRANSPORT_USB_HEARTBEAT_PRIORITY   1
 #define TRANSPORT_USB_RX_TIMEOUT_MS        20
-#define TRANSPORT_USB_DIAG_LINE_BUF_SIZE   48
-#define TRANSPORT_USB_HEX_HI_IDX           18
-#define TRANSPORT_USB_HEX_LO_IDX           19
 
 static uint32_t s_uart0_rx_bytes;
 static uint32_t s_uart1_rx_bytes;
@@ -55,6 +52,7 @@ static uint32_t s_usb_rx_bytes;
 
 static app_command_endpoint_t s_ep_debug;   /* UART0 – debug port   */
 static app_command_endpoint_t s_ep_prod;    /* UART1 – production port */
+static app_command_endpoint_t s_ep_usb;     /* USB Serial JTAG – optional debug port */
 
 /* =====================================================================
  * Output callbacks – one per port.
@@ -75,6 +73,16 @@ static void transport_write_uart1(const char *text)
         uart_write_bytes(UART_NUM_1, text, strlen(text));
     }
 }
+
+#if CONFIG_SOC_USB_SERIAL_JTAG_SUPPORTED
+static void transport_write_usb_serial_jtag(const char *text)
+{
+    if (text != NULL)
+    {
+        usb_serial_jtag_write_bytes((const uint8_t *)text, strlen(text), pdMS_TO_TICKS(20));
+    }
+}
+#endif
 
 /* =====================================================================
  * RX tasks – one per port.
@@ -155,14 +163,6 @@ static bool cmd_transport_is_valid_led_pin(int pin)
     return (pin >= 0) && GPIO_IS_VALID_OUTPUT_GPIO(pin);
 }
 
-static void cmd_transport_usb_diag_write(const char *text)
-{
-    if (text != NULL)
-    {
-        usb_serial_jtag_write_bytes((const uint8_t *)text, strlen(text), pdMS_TO_TICKS(20));
-    }
-}
-
 #if BOARD_HAS_USER_LED
 static void cmd_transport_diag_led_init(void)
 {
@@ -233,34 +233,34 @@ static void cmd_transport_usb_heartbeat_task(void *arg)
 
     while (1)
     {
-        cmd_transport_usb_diag_write("USBJTAG alive\r\n");
+        transport_write_usb_serial_jtag("USBJTAG alive\r\n");
         cmd_transport_diag_led_toggle_heartbeat();
         vTaskDelay(pdMS_TO_TICKS(TRANSPORT_USB_HEARTBEAT_PERIOD_MS));
     }
 }
 
-static void cmd_transport_usb_diag_task(void *arg)
+static void usb_serial_jtag_rx_task(void *arg)
 {
-    uint8_t b;
+    uint8_t buf[TRANSPORT_READ_CHUNK];
     int len;
-    char line[TRANSPORT_USB_DIAG_LINE_BUF_SIZE] = "USBJTAG RX byte=0x00\r\n";
     (void)arg;
 
     while (1)
     {
-        len = usb_serial_jtag_read_bytes(&b, 1, pdMS_TO_TICKS(TRANSPORT_USB_RX_TIMEOUT_MS));
+        len = usb_serial_jtag_read_bytes(buf, sizeof(buf), pdMS_TO_TICKS(TRANSPORT_USB_RX_TIMEOUT_MS));
         if (len > 0)
         {
             __atomic_fetch_add(&s_usb_rx_bytes, (uint32_t)len, __ATOMIC_RELAXED);
             cmd_transport_diag_led_toggle_rx();
-            line[TRANSPORT_USB_HEX_HI_IDX] = "0123456789ABCDEF"[(b >> 4) & 0x0F];
-            line[TRANSPORT_USB_HEX_LO_IDX] = "0123456789ABCDEF"[b & 0x0F];
-            cmd_transport_usb_diag_write(line);
+            for (int i = 0; i < len; i++)
+            {
+                app_command_endpoint_on_char(&s_ep_usb, (char)buf[i]);
+            }
         }
     }
 }
 
-static void cmd_transport_init_usb_diag(void)
+static void cmd_transport_init_usb_endpoint(void)
 {
     const usb_serial_jtag_driver_config_t usb_cfg = {
         .tx_buffer_size = TRANSPORT_USB_TX_BUF,
@@ -273,8 +273,17 @@ static void cmd_transport_init_usb_diag(void)
         return;
     }
 
+    {
+        const app_command_ctx_t ctx = {
+            .source               = APP_CMD_SOURCE_USB_CDC,
+            .output               = transport_write_usb_serial_jtag,
+            .allow_debug_commands = true,
+        };
+        app_command_endpoint_init_ex(&s_ep_usb, ctx);
+    }
+
     cmd_transport_diag_led_init();
-    cmd_transport_usb_diag_write("USBJTAG diag ready\r\n");
+    transport_write_usb_serial_jtag("USBJTAG cmd endpoint ready\r\n");
 
     BaseType_t hb_ret = xTaskCreate(cmd_transport_usb_heartbeat_task, "usb_hb_tx",
                                     TRANSPORT_USB_HEARTBEAT_STACK_SIZE, NULL,
@@ -284,16 +293,16 @@ static void cmd_transport_init_usb_diag(void)
         APP_LOGE(TAG, "xTaskCreate failed for usb_hb_tx: %d", (int)hb_ret);
     }
 
-    BaseType_t ret = xTaskCreate(cmd_transport_usb_diag_task, "usb_diag_rx",
+    BaseType_t ret = xTaskCreate(usb_serial_jtag_rx_task, "cmd_rx_usbjtag",
                                  TRANSPORT_USB_DIAG_STACK_SIZE, NULL,
                                  TRANSPORT_USB_DIAG_PRIORITY, NULL);
     if (ret != pdPASS)
     {
-        APP_LOGE(TAG, "xTaskCreate failed for usb_diag_rx: %d", (int)ret);
+        APP_LOGE(TAG, "xTaskCreate failed for cmd_rx_usbjtag: %d", (int)ret);
     }
     else
     {
-        APP_LOGI(TAG, "USB Serial JTAG diagnostic RX task started");
+        APP_LOGI(TAG, "USB Serial JTAG command endpoint initialised");
     }
 }
 #endif
@@ -420,10 +429,9 @@ void app_command_transport_init(void)
     }
 
 #if (APP_SERIAL_COMMAND_ENDPOINT == APP_SERIAL_ENDPOINT_USB_CDC)
-    APP_LOGW(TAG, "APP_SERIAL_COMMAND_ENDPOINT=USB_CDC selected, parser is still UART-only in current build");
-    APP_LOGW(TAG, "Starting USB Serial JTAG diagnostics only (no command parsing)");
+    APP_LOGI(TAG, "APP_SERIAL_COMMAND_ENDPOINT=USB_CDC mapped to USB Serial JTAG on ESP32-S3");
 #if CONFIG_SOC_USB_SERIAL_JTAG_SUPPORTED
-    cmd_transport_init_usb_diag();
+    cmd_transport_init_usb_endpoint();
 #else
     APP_LOGE(TAG, "USB Serial JTAG not supported by current target/config");
 #endif
