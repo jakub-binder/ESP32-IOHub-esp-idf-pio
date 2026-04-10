@@ -20,9 +20,9 @@ build/
 sdkconfig
 sdkconfig.old
 sdkconfig.*old
-
-# povolit env-specific configy
-!sdkconfig.*
+sdkconfig.*
+!sdkconfig.defaults
+!sdkconfig.defaults.*
 
 # ===== ESP-IDF python / cache =====
 __pycache__/

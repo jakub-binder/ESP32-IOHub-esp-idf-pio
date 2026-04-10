@@ -195,7 +195,7 @@ za:
 Commitovat:
 - zdrojové kódy
 - platformio.ini
-- sdkconfig.*
+- sdkconfig.defaults.*
 
 Ignorovat:
 .pio/
