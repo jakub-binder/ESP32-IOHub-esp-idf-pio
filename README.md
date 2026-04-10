@@ -171,7 +171,7 @@ za:
 
 1. Nahraj firmware pro `env:esp32s3` a otevři COM port s `VID:PID 303A:1001`.
 2. Pošli `help\n` (případně `init\n`).
-3. Očekávání: vrátí se odpověď z command systému (seznam příkazů nebo `Unknown command`), bez periodického `USBJTAG alive` spamu při výchozí konfiguraci.
+3. Očekávání: vrátí se odpověď z command systému (seznam příkazů nebo `Unknown command`), bez periodických `USBJTAG alive` diagnostických zpráv při výchozí konfiguraci.
 
 ---
 
