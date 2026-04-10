@@ -1,0 +1,2 @@
+# Shared sdkconfig defaults for all PlatformIO environments.
+# Keep only cross-board defaults in this file.
