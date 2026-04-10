@@ -9,7 +9,9 @@
 
 #include "driver/uart.h"
 #include "driver/uart_vfs.h"
+#if APP_DIAG_USBJTAG
 #include "driver/gpio.h"
+#endif
 #if CONFIG_SOC_USB_SERIAL_JTAG_SUPPORTED
 #include "driver/usb_serial_jtag.h"
 #endif
@@ -37,9 +39,11 @@
 #define TRANSPORT_USB_DIAG_PRIORITY        5
 #define TRANSPORT_USB_RX_BUF               256
 #define TRANSPORT_USB_TX_BUF               256
+#if APP_DIAG_USBJTAG
 #define TRANSPORT_USB_HEARTBEAT_PERIOD_MS  1000
 #define TRANSPORT_USB_HEARTBEAT_STACK_SIZE 3072
 #define TRANSPORT_USB_HEARTBEAT_PRIORITY   1
+#endif
 #define TRANSPORT_USB_RX_TIMEOUT_MS        20
 
 static uint32_t s_uart0_rx_bytes;
@@ -158,6 +162,7 @@ static void cmd_transport_diag_task(void *arg)
 }
 
 #if CONFIG_SOC_USB_SERIAL_JTAG_SUPPORTED
+#if APP_DIAG_USBJTAG
 static bool cmd_transport_is_valid_led_pin(int pin)
 {
     return (pin >= 0) && GPIO_IS_VALID_OUTPUT_GPIO(pin);
@@ -238,6 +243,7 @@ static void cmd_transport_usb_heartbeat_task(void *arg)
         vTaskDelay(pdMS_TO_TICKS(TRANSPORT_USB_HEARTBEAT_PERIOD_MS));
     }
 }
+#endif
 
 static void usb_serial_jtag_rx_task(void *arg)
 {
@@ -251,7 +257,9 @@ static void usb_serial_jtag_rx_task(void *arg)
         if (len > 0)
         {
             __atomic_fetch_add(&s_usb_rx_bytes, (uint32_t)len, __ATOMIC_RELAXED);
+#if APP_DIAG_USBJTAG
             cmd_transport_diag_led_toggle_rx();
+#endif
             for (int i = 0; i < len; i++)
             {
                 app_command_endpoint_on_char(&s_ep_usb, (char)buf[i]);
@@ -270,6 +278,7 @@ static void cmd_transport_init_usb_endpoint(void)
     if (err != ESP_OK)
     {
         APP_LOGE(TAG, "usb_serial_jtag_driver_install failed: %d", err);
+        APP_LOGE(TAG, "commands over USB Serial JTAG will not work");
         return;
     }
 
@@ -282,8 +291,8 @@ static void cmd_transport_init_usb_endpoint(void)
         app_command_endpoint_init_ex(&s_ep_usb, ctx);
     }
 
+#if APP_DIAG_USBJTAG
     cmd_transport_diag_led_init();
-    transport_write_usb_serial_jtag("USBJTAG cmd endpoint ready\r\n");
 
     BaseType_t hb_ret = xTaskCreate(cmd_transport_usb_heartbeat_task, "usb_hb_tx",
                                     TRANSPORT_USB_HEARTBEAT_STACK_SIZE, NULL,
@@ -292,6 +301,7 @@ static void cmd_transport_init_usb_endpoint(void)
     {
         APP_LOGE(TAG, "xTaskCreate failed for usb_hb_tx: %d", (int)hb_ret);
     }
+#endif
 
     BaseType_t ret = xTaskCreate(usb_serial_jtag_rx_task, "cmd_rx_usbjtag",
                                  TRANSPORT_USB_DIAG_STACK_SIZE, NULL,
@@ -299,10 +309,11 @@ static void cmd_transport_init_usb_endpoint(void)
     if (ret != pdPASS)
     {
         APP_LOGE(TAG, "xTaskCreate failed for cmd_rx_usbjtag: %d", (int)ret);
+        APP_LOGE(TAG, "commands over USB Serial JTAG will not work");
     }
     else
     {
-        APP_LOGI(TAG, "USB Serial JTAG command endpoint initialised");
+        APP_LOGI(TAG, "command endpoint initialized: USB Serial JTAG");
     }
 }
 #endif
@@ -355,6 +366,8 @@ static bool init_uart(uart_port_t port, int tx_pin, int rx_pin,
 
 void app_command_transport_init(void)
 {
+    APP_LOGI(TAG, "active command endpoint: %s", app_serial_endpoint_to_string(APP_SERIAL_COMMAND_ENDPOINT));
+
     /* ---------------------------------------------------------------
      * Debug port: UART0
      * allow_debug_commands = true
@@ -429,18 +442,17 @@ void app_command_transport_init(void)
     }
 
 #if (APP_SERIAL_COMMAND_ENDPOINT == APP_SERIAL_ENDPOINT_USB_CDC)
-    APP_LOGI(TAG, "APP_SERIAL_COMMAND_ENDPOINT=USB_CDC mapped to USB Serial JTAG on ESP32-S3");
+    APP_LOGI(TAG, "APP_COMMAND_ENDPOINT_USB_CDC is implemented via USB Serial JTAG on ESP32-S3");
 #if CONFIG_SOC_USB_SERIAL_JTAG_SUPPORTED
     cmd_transport_init_usb_endpoint();
 #else
     APP_LOGE(TAG, "USB Serial JTAG not supported by current target/config");
+    APP_LOGE(TAG, "commands over USB will not work");
 #endif
 #endif
 
     /* ---------------------------------------------------------------
-     * USB Serial JTAG (ESP32-S3, optional / architectural placeholder).
-     * Not active in this iteration; UART0 serves as the debug port.
-     * To enable: install usb_serial_jtag_driver and create a third
-     * endpoint with APP_CMD_SOURCE_USB_CDC and allow_debug_commands=true.
+     * APP_COMMAND_ENDPOINT_USB_CDC currently maps to USB Serial JTAG
+     * transport on ESP32-S3 (single COM port, VID:PID 303A:1001).
      * --------------------------------------------------------------- */
 }

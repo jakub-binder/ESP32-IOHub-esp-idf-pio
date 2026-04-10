@@ -25,6 +25,10 @@ extern "C" {
 #define APP_ENABLE_APPLICATION_LOGS       1
 #endif
 
+#ifndef APP_DIAG_USBJTAG
+#define APP_DIAG_USBJTAG                  0
+#endif
+
 #define APP_COMMAND_ENDPOINT_UART0        0
 #define APP_COMMAND_ENDPOINT_UART1        1
 #define APP_COMMAND_ENDPOINT_UART2        2

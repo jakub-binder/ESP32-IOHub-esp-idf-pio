@@ -13,6 +13,7 @@ typedef enum
     APP_SERIAL_ENDPOINT_UART0 = 0,
     APP_SERIAL_ENDPOINT_UART1,
     APP_SERIAL_ENDPOINT_UART2,
+    /* On ESP32-S3 this endpoint is implemented via USB Serial JTAG. */
     APP_SERIAL_ENDPOINT_USB_CDC
 } app_serial_endpoint_t;
 
@@ -57,7 +58,7 @@ static inline const char *app_serial_endpoint_to_string(app_serial_endpoint_t en
         case APP_SERIAL_ENDPOINT_UART2:
             return "UART2";
         case APP_SERIAL_ENDPOINT_USB_CDC:
-            return "USB_CDC";
+            return "USB_CDC (USB_SERIAL_JTAG on ESP32-S3)";
         default:
             return "UNKNOWN";
     }
