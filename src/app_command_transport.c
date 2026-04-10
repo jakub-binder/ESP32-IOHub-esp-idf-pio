@@ -31,6 +31,7 @@
 #define TRANSPORT_DIAG_LOG_PERIOD_MS       2000
 #define TRANSPORT_DIAG_TASK_STACK_SIZE     3072
 #define TRANSPORT_DIAG_TASK_PRIORITY       1
+/* Keep parity with UART RX tasks to avoid starvation while continuously polling USB RX. */
 #define TRANSPORT_USB_DIAG_STACK_SIZE      4096
 #define TRANSPORT_USB_DIAG_PRIORITY        5
 
@@ -174,7 +175,7 @@ static void cmd_transport_init_usb_diag(void)
                                  TRANSPORT_USB_DIAG_PRIORITY, NULL);
     if (ret != pdPASS)
     {
-        APP_LOGE(TAG, "xTaskCreate failed for cmd_rx_usbdiag");
+        APP_LOGE(TAG, "xTaskCreate failed for usb_diag_rx");
     }
     else
     {
@@ -305,7 +306,7 @@ void app_command_transport_init(void)
     }
 
 #if (APP_SERIAL_COMMAND_ENDPOINT == APP_SERIAL_ENDPOINT_USB_CDC)
-    APP_LOGW(TAG, "APP_COMMAND_ENDPOINT maps to USB_CDC, but command parser is UART-only in current build");
+    APP_LOGW(TAG, "APP_COMMAND_ENDPOINT maps to USB_CDC (APP_SERIAL_COMMAND_ENDPOINT=USB_CDC), but parser is UART-only");
     APP_LOGW(TAG, "Starting USB Serial JTAG diagnostics only (no command parsing)");
 #if CONFIG_SOC_USB_SERIAL_JTAG_SUPPORTED
     cmd_transport_init_usb_diag();
