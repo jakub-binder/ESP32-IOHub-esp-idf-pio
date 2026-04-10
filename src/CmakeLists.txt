@@ -7,6 +7,7 @@ idf_component_register(
         "app_commands.c"
         "app_command_endpoint.c"
         "app_command_system.c"
+        "app_command_transport.c"
     INCLUDE_DIRS
         "."
         "../include"

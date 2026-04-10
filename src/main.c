@@ -4,15 +4,10 @@
 #include "app_config.h"
 #include "app_log.h"
 #include "app_serial_routing.h"
+#include "app_command_transport.h"
 #include "app_command_endpoint.h"
 #include "board/board_pins.h"
 #include "fixtures/fixture.h"
-
-/* Forward command responses to the default console (UART0 or USB CDC). */
-static void app_output(const char *text)
-{
-    printf("%s", text);
-}
 
 void app_main(void)
 {
@@ -40,7 +35,10 @@ void app_main(void)
 
     fixture_setup();
 
-    app_command_endpoint_init(app_output);
+    /* Initialise the peripheral driver for the active command endpoint,
+     * then wire its output callback into the command layer. */
+    app_command_transport_init();
+    app_command_endpoint_init(app_command_transport_write);
 
     while (1)
     {
