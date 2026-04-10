@@ -17,7 +17,6 @@
 #include "freertos/task.h"
 
 #include <string.h>
-#include <stdio.h>
 
 #define TAG "CMD_TRANSPORT"
 
@@ -33,7 +32,7 @@
 #define TRANSPORT_DIAG_LOG_PERIOD_MS       2000
 #define TRANSPORT_DIAG_TASK_STACK_SIZE     3072
 #define TRANSPORT_DIAG_TASK_PRIORITY       1
-/* Keep parity with UART RX tasks to avoid starvation while continuously polling USB RX. */
+/* Keep same sizing as UART RX tasks for comparable runtime footprint. */
 #define TRANSPORT_USB_DIAG_STACK_SIZE      4096
 #define TRANSPORT_USB_DIAG_PRIORITY        5
 #define TRANSPORT_USB_RX_BUF               256
@@ -41,7 +40,7 @@
 #define TRANSPORT_USB_HEARTBEAT_PERIOD_MS  1000
 #define TRANSPORT_USB_HEARTBEAT_STACK_SIZE 3072
 #define TRANSPORT_USB_HEARTBEAT_PRIORITY   1
-#define TRANSPORT_USB_RX_TIMEOUT_MS        100
+#define TRANSPORT_USB_RX_TIMEOUT_MS        20
 #define TRANSPORT_USB_DIAG_LINE_BUF_SIZE   48
 
 static uint32_t s_uart0_rx_bytes;
@@ -237,7 +236,7 @@ static void cmd_transport_usb_diag_task(void *arg)
 {
     uint8_t b;
     int len;
-    char line[TRANSPORT_USB_DIAG_LINE_BUF_SIZE];
+    char line[TRANSPORT_USB_DIAG_LINE_BUF_SIZE] = "USBJTAG RX byte=0x00\r\n";
     (void)arg;
 
     while (1)
@@ -247,7 +246,8 @@ static void cmd_transport_usb_diag_task(void *arg)
         {
             __atomic_fetch_add(&s_usb_rx_bytes, (uint32_t)len, __ATOMIC_RELAXED);
             cmd_transport_diag_led_toggle_rx();
-            (void)snprintf(line, sizeof(line), "USBJTAG RX byte=0x%02X\r\n", b);
+            line[18] = "0123456789ABCDEF"[(b >> 4) & 0x0F];
+            line[19] = "0123456789ABCDEF"[b & 0x0F];
             cmd_transport_usb_diag_write(line);
         }
     }
