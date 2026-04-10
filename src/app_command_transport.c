@@ -42,6 +42,8 @@
 #define TRANSPORT_USB_HEARTBEAT_PRIORITY   1
 #define TRANSPORT_USB_RX_TIMEOUT_MS        20
 #define TRANSPORT_USB_DIAG_LINE_BUF_SIZE   48
+#define TRANSPORT_USB_HEX_HI_IDX           18
+#define TRANSPORT_USB_HEX_LO_IDX           19
 
 static uint32_t s_uart0_rx_bytes;
 static uint32_t s_uart1_rx_bytes;
@@ -148,6 +150,11 @@ static void cmd_transport_diag_task(void *arg)
 }
 
 #if CONFIG_SOC_USB_SERIAL_JTAG_SUPPORTED
+static bool cmd_transport_is_valid_led_pin(int pin)
+{
+    return (pin >= 0) && GPIO_IS_VALID_OUTPUT_GPIO(pin);
+}
+
 static void cmd_transport_usb_diag_write(const char *text)
 {
     if (text != NULL)
@@ -160,11 +167,11 @@ static void cmd_transport_usb_diag_write(const char *text)
 static void cmd_transport_diag_led_init(void)
 {
     uint64_t pin_mask = 0;
-    if (BOARD_USER_LED_PIN >= 0)
+    if (cmd_transport_is_valid_led_pin(BOARD_USER_LED_PIN))
     {
         pin_mask |= (1ULL << BOARD_USER_LED_PIN);
     }
-    if (BOARD_USER_LED2_PIN >= 0)
+    if (cmd_transport_is_valid_led_pin(BOARD_USER_LED2_PIN))
     {
         pin_mask |= (1ULL << BOARD_USER_LED2_PIN);
     }
@@ -181,11 +188,11 @@ static void cmd_transport_diag_led_init(void)
         .intr_type = GPIO_INTR_DISABLE,
     };
     (void)gpio_config(&cfg);
-    if (BOARD_USER_LED_PIN >= 0)
+    if (cmd_transport_is_valid_led_pin(BOARD_USER_LED_PIN))
     {
         (void)gpio_set_level(BOARD_USER_LED_PIN, 0);
     }
-    if (BOARD_USER_LED2_PIN >= 0)
+    if (cmd_transport_is_valid_led_pin(BOARD_USER_LED2_PIN))
     {
         (void)gpio_set_level(BOARD_USER_LED2_PIN, 0);
     }
@@ -195,7 +202,7 @@ static void cmd_transport_diag_led_toggle_heartbeat(void)
 {
     static bool heartbeat_on = false;
     heartbeat_on = !heartbeat_on;
-    if (BOARD_USER_LED_PIN >= 0)
+    if (cmd_transport_is_valid_led_pin(BOARD_USER_LED_PIN))
     {
         (void)gpio_set_level(BOARD_USER_LED_PIN, heartbeat_on ? 1 : 0);
     }
@@ -205,11 +212,11 @@ static void cmd_transport_diag_led_toggle_rx(void)
 {
     static bool rx_on = false;
     rx_on = !rx_on;
-    if (BOARD_USER_LED2_PIN >= 0)
+    if (cmd_transport_is_valid_led_pin(BOARD_USER_LED2_PIN))
     {
         (void)gpio_set_level(BOARD_USER_LED2_PIN, rx_on ? 1 : 0);
     }
-    else if (BOARD_USER_LED_PIN >= 0)
+    else if (cmd_transport_is_valid_led_pin(BOARD_USER_LED_PIN))
     {
         (void)gpio_set_level(BOARD_USER_LED_PIN, rx_on ? 1 : 0);
     }
@@ -246,8 +253,8 @@ static void cmd_transport_usb_diag_task(void *arg)
         {
             __atomic_fetch_add(&s_usb_rx_bytes, (uint32_t)len, __ATOMIC_RELAXED);
             cmd_transport_diag_led_toggle_rx();
-            line[18] = "0123456789ABCDEF"[(b >> 4) & 0x0F];
-            line[19] = "0123456789ABCDEF"[b & 0x0F];
+            line[TRANSPORT_USB_HEX_HI_IDX] = "0123456789ABCDEF"[(b >> 4) & 0x0F];
+            line[TRANSPORT_USB_HEX_LO_IDX] = "0123456789ABCDEF"[b & 0x0F];
             cmd_transport_usb_diag_write(line);
         }
     }
@@ -274,7 +281,7 @@ static void cmd_transport_init_usb_diag(void)
                                     TRANSPORT_USB_HEARTBEAT_PRIORITY, NULL);
     if (hb_ret != pdPASS)
     {
-        APP_LOGE(TAG, "xTaskCreate failed for usb_hb_tx");
+        APP_LOGE(TAG, "xTaskCreate failed for usb_hb_tx: %d", (int)hb_ret);
     }
 
     BaseType_t ret = xTaskCreate(cmd_transport_usb_diag_task, "usb_diag_rx",
@@ -282,7 +289,7 @@ static void cmd_transport_init_usb_diag(void)
                                  TRANSPORT_USB_DIAG_PRIORITY, NULL);
     if (ret != pdPASS)
     {
-        APP_LOGE(TAG, "xTaskCreate failed for usb_diag_rx");
+        APP_LOGE(TAG, "xTaskCreate failed for usb_diag_rx: %d", (int)ret);
     }
     else
     {
