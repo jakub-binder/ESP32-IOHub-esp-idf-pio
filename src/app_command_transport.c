@@ -9,6 +9,7 @@
 
 #include "driver/uart.h"
 #include "driver/uart_vfs.h"
+#include "driver/gpio.h"
 #if CONFIG_SOC_USB_SERIAL_JTAG_SUPPORTED
 #include "driver/usb_serial_jtag.h"
 #endif
@@ -16,6 +17,7 @@
 #include "freertos/task.h"
 
 #include <string.h>
+#include <stdio.h>
 
 #define TAG "CMD_TRANSPORT"
 
@@ -36,6 +38,9 @@
 #define TRANSPORT_USB_DIAG_PRIORITY        5
 #define TRANSPORT_USB_RX_BUF               256
 #define TRANSPORT_USB_TX_BUF               256
+#define TRANSPORT_USB_HEARTBEAT_PERIOD_MS  1000
+#define TRANSPORT_USB_HEARTBEAT_STACK_SIZE 3072
+#define TRANSPORT_USB_HEARTBEAT_PRIORITY   1
 
 static uint32_t s_uart0_rx_bytes;
 static uint32_t s_uart1_rx_bytes;
@@ -142,10 +147,65 @@ static void cmd_transport_diag_task(void *arg)
 }
 
 #if CONFIG_SOC_USB_SERIAL_JTAG_SUPPORTED
+static void cmd_transport_usb_diag_write(const char *text)
+{
+    if (text != NULL)
+    {
+        usb_serial_jtag_write_bytes((const uint8_t *)text, strlen(text), pdMS_TO_TICKS(20));
+    }
+}
+
+#if BOARD_HAS_USER_LED
+static void cmd_transport_diag_led_init(void)
+{
+    const gpio_config_t cfg = {
+        .pin_bit_mask = (1ULL << BOARD_USER_LED_PIN) | (1ULL << BOARD_USER_LED2_PIN),
+        .mode = GPIO_MODE_OUTPUT,
+        .pull_up_en = GPIO_PULLUP_DISABLE,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .intr_type = GPIO_INTR_DISABLE,
+    };
+    (void)gpio_config(&cfg);
+    (void)gpio_set_level(BOARD_USER_LED_PIN, 0);
+    (void)gpio_set_level(BOARD_USER_LED2_PIN, 0);
+}
+
+static void cmd_transport_diag_led_toggle_heartbeat(void)
+{
+    static bool heartbeat_on;
+    heartbeat_on = !heartbeat_on;
+    (void)gpio_set_level(BOARD_USER_LED_PIN, heartbeat_on ? 1 : 0);
+}
+
+static void cmd_transport_diag_led_toggle_rx(void)
+{
+    static bool rx_on;
+    rx_on = !rx_on;
+    (void)gpio_set_level(BOARD_USER_LED2_PIN, rx_on ? 1 : 0);
+}
+#else
+static void cmd_transport_diag_led_init(void) {}
+static void cmd_transport_diag_led_toggle_heartbeat(void) {}
+static void cmd_transport_diag_led_toggle_rx(void) {}
+#endif
+
+static void cmd_transport_usb_heartbeat_task(void *arg)
+{
+    (void)arg;
+
+    while (1)
+    {
+        cmd_transport_usb_diag_write("USBJTAG alive\r\n");
+        cmd_transport_diag_led_toggle_heartbeat();
+        vTaskDelay(pdMS_TO_TICKS(TRANSPORT_USB_HEARTBEAT_PERIOD_MS));
+    }
+}
+
 static void cmd_transport_usb_diag_task(void *arg)
 {
     uint8_t b;
     int len;
+    char line[48];
     (void)arg;
 
     while (1)
@@ -154,6 +214,9 @@ static void cmd_transport_usb_diag_task(void *arg)
         if (len > 0)
         {
             __atomic_fetch_add(&s_usb_rx_bytes, (uint32_t)len, __ATOMIC_RELAXED);
+            cmd_transport_diag_led_toggle_rx();
+            (void)snprintf(line, sizeof(line), "USBJTAG RX byte=0x%02X\r\n", b);
+            cmd_transport_usb_diag_write(line);
             APP_LOGI(TAG, "USB_SERIAL_JTAG RX byte=0x%02X", b);
         }
     }
@@ -170,6 +233,17 @@ static void cmd_transport_init_usb_diag(void)
     {
         APP_LOGE(TAG, "usb_serial_jtag_driver_install failed: %d", err);
         return;
+    }
+
+    cmd_transport_diag_led_init();
+    cmd_transport_usb_diag_write("USBJTAG diag ready\r\n");
+
+    BaseType_t hb_ret = xTaskCreate(cmd_transport_usb_heartbeat_task, "usb_hb_tx",
+                                    TRANSPORT_USB_HEARTBEAT_STACK_SIZE, NULL,
+                                    TRANSPORT_USB_HEARTBEAT_PRIORITY, NULL);
+    if (hb_ret != pdPASS)
+    {
+        APP_LOGE(TAG, "xTaskCreate failed for usb_hb_tx");
     }
 
     BaseType_t ret = xTaskCreate(cmd_transport_usb_diag_task, "usb_diag_rx",
