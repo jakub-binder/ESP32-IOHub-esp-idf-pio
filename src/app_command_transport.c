@@ -34,10 +34,12 @@
 /* Keep parity with UART RX tasks to avoid starvation while continuously polling USB RX. */
 #define TRANSPORT_USB_DIAG_STACK_SIZE      4096
 #define TRANSPORT_USB_DIAG_PRIORITY        5
+#define TRANSPORT_USB_RX_BUF               256
+#define TRANSPORT_USB_TX_BUF               256
 
-static volatile uint32_t s_uart0_rx_bytes;
-static volatile uint32_t s_uart1_rx_bytes;
-static volatile uint32_t s_usb_rx_bytes;
+static uint32_t s_uart0_rx_bytes;
+static uint32_t s_uart1_rx_bytes;
+static uint32_t s_usb_rx_bytes;
 
 /* =====================================================================
  * Static endpoint instances – one per active port.
@@ -160,8 +162,8 @@ static void cmd_transport_usb_diag_task(void *arg)
 static void cmd_transport_init_usb_diag(void)
 {
     const usb_serial_jtag_driver_config_t usb_cfg = {
-        .tx_buffer_size = 256,
-        .rx_buffer_size = 256,
+        .tx_buffer_size = TRANSPORT_USB_TX_BUF,
+        .rx_buffer_size = TRANSPORT_USB_RX_BUF,
     };
     esp_err_t err = usb_serial_jtag_driver_install(&usb_cfg);
     if (err != ESP_OK)
@@ -302,7 +304,7 @@ void app_command_transport_init(void)
                                       TRANSPORT_DIAG_TASK_PRIORITY, NULL);
     if (diag_ret != pdPASS)
     {
-        APP_LOGE(TAG, "xTaskCreate failed for cmd_rx_diag");
+        APP_LOGE(TAG, "xTaskCreate failed for transport_diag");
     }
 
 #if (APP_SERIAL_COMMAND_ENDPOINT == APP_SERIAL_ENDPOINT_USB_CDC)
