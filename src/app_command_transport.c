@@ -284,6 +284,7 @@ static void cmd_transport_init_usb_endpoint(void)
 
     {
         const app_command_ctx_t ctx = {
+            /* Historical enum value name; on ESP32-S3 transport is USB Serial JTAG. */
             .source               = APP_CMD_SOURCE_USB_CDC,
             .output               = transport_write_usb_serial_jtag,
             .allow_debug_commands = true,
