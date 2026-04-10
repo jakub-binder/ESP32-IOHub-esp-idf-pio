@@ -1,10 +1,13 @@
 #include "app_command_transport.h"
 #include "app_command_endpoint.h"
+#include "app_commands.h"
 
 #include "app_config.h"
 #include "board/board_pins.h"
 #include "app_log.h"
 
+#include "driver/uart.h"
+#include "driver/uart_vfs.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
@@ -12,39 +15,48 @@
 
 #define TAG "CMD_TRANSPORT"
 
-/* RX ring-buffer size allocated for the peripheral driver (bytes). */
-#define TRANSPORT_RX_BUF    512
+/* Ring-buffer sizes for UART drivers. */
+#define TRANSPORT_RX_BUF        512
 
 /* TX ring-buffer size; 0 = blocking TX (no ring buffer).
  * Sufficient for short command responses sent from a single task. */
-#define TRANSPORT_TX_BUF    0
+#define TRANSPORT_TX_BUF        0
 
-/* Max bytes consumed per single uart_read_bytes() / usb_serial_jtag_read_bytes() call. */
+/* Max bytes consumed per single uart_read_bytes() call. */
 #define TRANSPORT_READ_CHUNK    64
 
 /* =====================================================================
- * UART transport  (APP_COMMAND_ENDPOINT_UART0 / UART1)
+ * Static endpoint instances – one per active port.
  * ===================================================================== */
 
-#if (APP_COMMAND_ENDPOINT == APP_COMMAND_ENDPOINT_UART0) || \
-    (APP_COMMAND_ENDPOINT == APP_COMMAND_ENDPOINT_UART1)
+static app_command_endpoint_t s_ep_debug;   /* UART0 – debug port   */
+static app_command_endpoint_t s_ep_prod;    /* UART1 – production port */
 
-#include "driver/uart.h"
-#include "driver/uart_vfs.h"    /* uart_vfs_dev_use_driver() */
+/* =====================================================================
+ * Output callbacks – one per port.
+ * ===================================================================== */
 
-#if (APP_COMMAND_ENDPOINT == APP_COMMAND_ENDPOINT_UART0)
-/* UART0: use the default pins already wired by the bootloader. */
-#  define TRANSPORT_UART_NUM    UART_NUM_0
-#  define TRANSPORT_TX_PIN      UART_PIN_NO_CHANGE
-#  define TRANSPORT_RX_PIN      UART_PIN_NO_CHANGE
-#elif (APP_COMMAND_ENDPOINT == APP_COMMAND_ENDPOINT_UART1)
-/* UART1: use board-specific pins from the board header. */
-#  define TRANSPORT_UART_NUM    UART_NUM_1
-#  define TRANSPORT_TX_PIN      BOARD_UART1_TX_PIN
-#  define TRANSPORT_RX_PIN      BOARD_UART1_RX_PIN
-#endif
+static void transport_write_uart0(const char *text)
+{
+    if (text != NULL)
+    {
+        uart_write_bytes(UART_NUM_0, text, strlen(text));
+    }
+}
 
-static void uart_rx_task(void *arg)
+static void transport_write_uart1(const char *text)
+{
+    if (text != NULL)
+    {
+        uart_write_bytes(UART_NUM_1, text, strlen(text));
+    }
+}
+
+/* =====================================================================
+ * RX tasks – one per port.
+ * ===================================================================== */
+
+static void uart0_rx_task(void *arg)
 {
     uint8_t buf[TRANSPORT_READ_CHUNK];
     int len;
@@ -52,19 +64,39 @@ static void uart_rx_task(void *arg)
 
     while (1)
     {
-        len = uart_read_bytes(TRANSPORT_UART_NUM, buf, sizeof(buf),
+        len = uart_read_bytes(UART_NUM_0, buf, sizeof(buf),
                               pdMS_TO_TICKS(20));
         for (int i = 0; i < len; i++)
         {
-            app_command_endpoint_on_char((char)buf[i]);
+            app_command_endpoint_on_char(&s_ep_debug, (char)buf[i]);
         }
     }
 }
 
-void app_command_transport_init(void)
+static void uart1_rx_task(void *arg)
 {
-    esp_err_t err;
+    uint8_t buf[TRANSPORT_READ_CHUNK];
+    int len;
+    (void)arg;
 
+    while (1)
+    {
+        len = uart_read_bytes(UART_NUM_1, buf, sizeof(buf),
+                              pdMS_TO_TICKS(20));
+        for (int i = 0; i < len; i++)
+        {
+            app_command_endpoint_on_char(&s_ep_prod, (char)buf[i]);
+        }
+    }
+}
+
+/* =====================================================================
+ * UART initialisation helper.
+ * ===================================================================== */
+
+static bool init_uart(uart_port_t port, int tx_pin, int rx_pin,
+                      const char *name)
+{
     const uart_config_t cfg = {
         .baud_rate = 115200,
         .data_bits = UART_DATA_8_BITS,
@@ -72,120 +104,106 @@ void app_command_transport_init(void)
         .stop_bits = UART_STOP_BITS_1,
         .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
     };
+    esp_err_t err;
 
-    err = uart_param_config(TRANSPORT_UART_NUM, &cfg);
+    err = uart_param_config(port, &cfg);
     if (err != ESP_OK)
     {
-        APP_LOGE(TAG, "uart_param_config failed: %d", err);
-        return;
+        APP_LOGE(TAG, "%s uart_param_config failed: %d", name, err);
+        return false;
     }
 
-    err = uart_set_pin(TRANSPORT_UART_NUM,
-                       TRANSPORT_TX_PIN, TRANSPORT_RX_PIN,
+    err = uart_set_pin(port, tx_pin, rx_pin,
                        UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
     if (err != ESP_OK)
     {
-        APP_LOGE(TAG, "uart_set_pin failed: %d", err);
-        return;
+        APP_LOGE(TAG, "%s uart_set_pin failed: %d", name, err);
+        return false;
     }
 
-    err = uart_driver_install(TRANSPORT_UART_NUM,
-                              TRANSPORT_RX_BUF, TRANSPORT_TX_BUF,
+    err = uart_driver_install(port, TRANSPORT_RX_BUF, TRANSPORT_TX_BUF,
                               0, NULL, 0);
     if (err != ESP_OK)
     {
-        APP_LOGE(TAG, "uart_driver_install failed: %d", err);
-        return;
+        APP_LOGE(TAG, "%s uart_driver_install failed: %d", name, err);
+        return false;
     }
 
-#if (APP_COMMAND_ENDPOINT == APP_COMMAND_ENDPOINT_UART0)
-    /* Route VFS (printf / ESP_LOG*) through the installed UART0 driver
-     * so that all UART0 I/O is managed by a single driver instance. */
-    uart_vfs_dev_use_driver(TRANSPORT_UART_NUM);
-#endif
-
-    BaseType_t ret = xTaskCreate(uart_rx_task, "cmd_transport_rx",
-                                 4096, NULL, 5, NULL);
-    if (ret != pdPASS)
-    {
-        APP_LOGE(TAG, "xTaskCreate failed for cmd_transport_rx");
-        return;
-    }
-
-    APP_LOGI(TAG, "UART%d transport initialised", (int)TRANSPORT_UART_NUM);
-}
-
-void app_command_transport_write(const char *text)
-{
-    if (text != NULL)
-    {
-        uart_write_bytes(TRANSPORT_UART_NUM, text, strlen(text));
-    }
+    return true;
 }
 
 /* =====================================================================
- * USB CDC transport  (APP_COMMAND_ENDPOINT_USB_CDC, ESP32-S3)
- *
- * Requires the USB Serial/JTAG driver (driver/usb_serial_jtag.h).
- * The secondary USB Serial JTAG console must be disabled in sdkconfig
- * (CONFIG_ESP_CONSOLE_SECONDARY_NONE=y) to avoid conflicts with the
- * driver; see sdkconfig.esp32s3.
+ * Public API
  * ===================================================================== */
-
-#elif (APP_COMMAND_ENDPOINT == APP_COMMAND_ENDPOINT_USB_CDC)
-
-#include "driver/usb_serial_jtag.h"
-
-static void cdc_rx_task(void *arg)
-{
-    uint8_t buf[TRANSPORT_READ_CHUNK];
-    int len;
-    (void)arg;
-
-    while (1)
-    {
-        len = usb_serial_jtag_read_bytes(buf, sizeof(buf),
-                                         pdMS_TO_TICKS(20));
-        for (int i = 0; i < len; i++)
-        {
-            app_command_endpoint_on_char((char)buf[i]);
-        }
-    }
-}
 
 void app_command_transport_init(void)
 {
-    const usb_serial_jtag_driver_config_t cfg = {
-        .rx_buffer_size = TRANSPORT_RX_BUF,
-        .tx_buffer_size = 256,
-    };
-
-    esp_err_t err = usb_serial_jtag_driver_install(&cfg);
-    if (err != ESP_OK)
+    /* ---------------------------------------------------------------
+     * Debug port: UART0
+     * allow_debug_commands = true
+     * --------------------------------------------------------------- */
     {
-        APP_LOGE(TAG, "usb_serial_jtag_driver_install failed: %d", err);
-        return;
+        const app_command_ctx_t ctx = {
+            .source               = APP_CMD_SOURCE_UART0,
+            .output               = transport_write_uart0,
+            .allow_debug_commands = true,
+        };
+        app_command_endpoint_init_ex(&s_ep_debug, ctx);
     }
 
-    BaseType_t ret = xTaskCreate(cdc_rx_task, "cmd_transport_rx",
-                                 4096, NULL, 5, NULL);
-    if (ret != pdPASS)
+    if (init_uart(UART_NUM_0,
+                  UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE,
+                  "UART0"))
     {
-        APP_LOGE(TAG, "xTaskCreate failed for cmd_transport_rx");
-        return;
+        /* Route VFS (printf / ESP_LOG*) through the installed UART0 driver
+         * so that all UART0 I/O is managed by a single driver instance. */
+        uart_vfs_dev_use_driver(UART_NUM_0);
+
+        BaseType_t ret = xTaskCreate(uart0_rx_task, "cmd_rx_uart0",
+                                     4096, NULL, 5, NULL);
+        if (ret != pdPASS)
+        {
+            APP_LOGE(TAG, "xTaskCreate failed for cmd_rx_uart0");
+        }
+        else
+        {
+            APP_LOGI(TAG, "debug port: UART0 initialised");
+        }
     }
 
-    APP_LOGI(TAG, "USB CDC transport initialised");
+    /* ---------------------------------------------------------------
+     * Production port: UART1
+     * allow_debug_commands = false
+     * --------------------------------------------------------------- */
+    {
+        const app_command_ctx_t ctx = {
+            .source               = APP_CMD_SOURCE_UART1,
+            .output               = transport_write_uart1,
+            .allow_debug_commands = false,
+        };
+        app_command_endpoint_init_ex(&s_ep_prod, ctx);
+    }
+
+    if (init_uart(UART_NUM_1,
+                  BOARD_UART1_TX_PIN, BOARD_UART1_RX_PIN,
+                  "UART1"))
+    {
+        BaseType_t ret = xTaskCreate(uart1_rx_task, "cmd_rx_uart1",
+                                     4096, NULL, 5, NULL);
+        if (ret != pdPASS)
+        {
+            APP_LOGE(TAG, "xTaskCreate failed for cmd_rx_uart1");
+        }
+        else
+        {
+            APP_LOGI(TAG, "production port: UART1 initialised");
+        }
+    }
+
+    /* ---------------------------------------------------------------
+     * USB Serial JTAG (ESP32-S3, optional / architectural placeholder).
+     * Not active in this iteration; UART0 serves as the debug port.
+     * To enable: install usb_serial_jtag_driver and create a third
+     * endpoint with APP_CMD_SOURCE_USB_CDC and allow_debug_commands=true.
+     * --------------------------------------------------------------- */
 }
-
-void app_command_transport_write(const char *text)
-{
-    if (text != NULL)
-    {
-        usb_serial_jtag_write_bytes(text, strlen(text), pdMS_TO_TICKS(20));
-    }
-}
-
-#else
-#error "Unsupported APP_COMMAND_ENDPOINT value in app_command_transport.c"
-#endif
