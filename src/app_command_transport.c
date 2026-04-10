@@ -128,7 +128,7 @@ static void cmd_transport_diag_task(void *arg)
         uint32_t now_usb   = __atomic_load_n(&s_usb_rx_bytes, __ATOMIC_RELAXED);
 
         APP_LOGI(TAG,
-                 "diag rx bytes/2s: UART0=%lu(+%lu) UART1=%lu(+%lu) USBJTAG=%lu(+%lu)",
+                 "diag rx bytes/2s: UART0=%lu(+%lu) UART1=%lu(+%lu) USB_SERIAL_JTAG=%lu(+%lu)",
                  (unsigned long)now_uart0, (unsigned long)(now_uart0 - prev_uart0),
                  (unsigned long)now_uart1, (unsigned long)(now_uart1 - prev_uart1),
                  (unsigned long)now_usb, (unsigned long)(now_usb - prev_usb));
@@ -308,7 +308,7 @@ void app_command_transport_init(void)
     }
 
 #if (APP_SERIAL_COMMAND_ENDPOINT == APP_SERIAL_ENDPOINT_USB_CDC)
-    APP_LOGW(TAG, "APP_COMMAND_ENDPOINT maps to USB_CDC (APP_SERIAL_COMMAND_ENDPOINT=USB_CDC), but parser is UART-only");
+    APP_LOGW(TAG, "APP_COMMAND_ENDPOINT=USB_CDC selected, parser is still UART-only in current build");
     APP_LOGW(TAG, "Starting USB Serial JTAG diagnostics only (no command parsing)");
 #if CONFIG_SOC_USB_SERIAL_JTAG_SUPPORTED
     cmd_transport_init_usb_diag();
