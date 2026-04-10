@@ -285,7 +285,8 @@ static void cmd_transport_init_usb_endpoint(void)
     {
         const app_command_ctx_t ctx = {
             /* Keep APP_CMD_SOURCE_USB_CDC for compatibility with existing command-source checks.
-             * On ESP32-S3 this endpoint is implemented by USB Serial JTAG transport. */
+             * On targets with USB Serial JTAG support this endpoint is implemented
+             * by USB Serial JTAG transport. */
             .source               = APP_CMD_SOURCE_USB_CDC,
             .output               = transport_write_usb_serial_jtag,
             .allow_debug_commands = true,
@@ -444,7 +445,7 @@ void app_command_transport_init(void)
     }
 
 #if (APP_SERIAL_COMMAND_ENDPOINT == APP_SERIAL_ENDPOINT_USB_CDC)
-    APP_LOGI(TAG, "APP_COMMAND_ENDPOINT_USB_CDC is implemented via USB Serial JTAG on ESP32-S3");
+    APP_LOGI(TAG, "selected command endpoint USB_CDC is implemented via USB Serial JTAG");
 #if CONFIG_SOC_USB_SERIAL_JTAG_SUPPORTED
     cmd_transport_init_usb_endpoint();
 #else

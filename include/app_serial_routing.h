@@ -58,7 +58,7 @@ static inline const char *app_serial_endpoint_to_string(app_serial_endpoint_t en
         case APP_SERIAL_ENDPOINT_UART2:
             return "UART2";
         case APP_SERIAL_ENDPOINT_USB_CDC:
-            return "USB_CDC (USB_SERIAL_JTAG on ESP32-S3)";
+            return "USB_CDC (USB_SERIAL_JTAG)";
         default:
             return "UNKNOWN";
     }
