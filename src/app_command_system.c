@@ -4,6 +4,7 @@
 
 #include "app_config.h"
 #include "app_log.h"
+#include "app_system_info.h"
 
 #define TAG "CMD_SYS"
 
@@ -35,4 +36,9 @@ void app_command_system_init(app_command_output_fn output)
     {
         output("OK\r\n");
     }
+}
+
+void app_command_system_info(app_command_output_fn output)
+{
+    app_system_info_print(output);
 }
