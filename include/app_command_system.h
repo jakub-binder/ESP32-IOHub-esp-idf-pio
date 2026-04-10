@@ -12,6 +12,7 @@ extern "C" {
 void app_command_system_firmware(app_command_output_fn output);
 void app_command_system_restart(app_command_output_fn output);
 void app_command_system_init(app_command_output_fn output);
+void app_command_system_info(app_command_output_fn output);
 
 #ifdef __cplusplus
 }
