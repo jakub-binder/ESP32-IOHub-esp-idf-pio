@@ -41,6 +41,7 @@
 #define TRANSPORT_USB_HEARTBEAT_PERIOD_MS  1000
 #define TRANSPORT_USB_HEARTBEAT_STACK_SIZE 3072
 #define TRANSPORT_USB_HEARTBEAT_PRIORITY   1
+#define TRANSPORT_USB_RX_TIMEOUT_MS        100
 
 static uint32_t s_uart0_rx_bytes;
 static uint32_t s_uart1_rx_bytes;
@@ -158,30 +159,60 @@ static void cmd_transport_usb_diag_write(const char *text)
 #if BOARD_HAS_USER_LED
 static void cmd_transport_diag_led_init(void)
 {
+    uint64_t pin_mask = 0;
+    if (BOARD_USER_LED_PIN >= 0)
+    {
+        pin_mask |= (1ULL << BOARD_USER_LED_PIN);
+    }
+    if (BOARD_USER_LED2_PIN >= 0)
+    {
+        pin_mask |= (1ULL << BOARD_USER_LED2_PIN);
+    }
+    if (pin_mask == 0)
+    {
+        return;
+    }
+
     const gpio_config_t cfg = {
-        .pin_bit_mask = (1ULL << BOARD_USER_LED_PIN) | (1ULL << BOARD_USER_LED2_PIN),
+        .pin_bit_mask = pin_mask,
         .mode = GPIO_MODE_OUTPUT,
         .pull_up_en = GPIO_PULLUP_DISABLE,
         .pull_down_en = GPIO_PULLDOWN_DISABLE,
         .intr_type = GPIO_INTR_DISABLE,
     };
     (void)gpio_config(&cfg);
-    (void)gpio_set_level(BOARD_USER_LED_PIN, 0);
-    (void)gpio_set_level(BOARD_USER_LED2_PIN, 0);
+    if (BOARD_USER_LED_PIN >= 0)
+    {
+        (void)gpio_set_level(BOARD_USER_LED_PIN, 0);
+    }
+    if (BOARD_USER_LED2_PIN >= 0)
+    {
+        (void)gpio_set_level(BOARD_USER_LED2_PIN, 0);
+    }
 }
 
 static void cmd_transport_diag_led_toggle_heartbeat(void)
 {
     static bool heartbeat_on;
     heartbeat_on = !heartbeat_on;
-    (void)gpio_set_level(BOARD_USER_LED_PIN, heartbeat_on ? 1 : 0);
+    if (BOARD_USER_LED_PIN >= 0)
+    {
+        (void)gpio_set_level(BOARD_USER_LED_PIN, heartbeat_on ? 1 : 0);
+    }
 }
 
 static void cmd_transport_diag_led_toggle_rx(void)
 {
     static bool rx_on;
     rx_on = !rx_on;
-    (void)gpio_set_level(BOARD_USER_LED2_PIN, rx_on ? 1 : 0);
+    if (BOARD_USER_LED2_PIN >= 0)
+    {
+        (void)gpio_set_level(BOARD_USER_LED2_PIN, rx_on ? 1 : 0);
+    }
+    else if (BOARD_USER_LED_PIN >= 0)
+    {
+        (void)gpio_set_level(BOARD_USER_LED_PIN, rx_on ? 1 : 0);
+    }
 }
 #else
 static void cmd_transport_diag_led_init(void) {}
@@ -210,14 +241,13 @@ static void cmd_transport_usb_diag_task(void *arg)
 
     while (1)
     {
-        len = usb_serial_jtag_read_bytes(&b, 1, pdMS_TO_TICKS(20));
+        len = usb_serial_jtag_read_bytes(&b, 1, pdMS_TO_TICKS(TRANSPORT_USB_RX_TIMEOUT_MS));
         if (len > 0)
         {
             __atomic_fetch_add(&s_usb_rx_bytes, (uint32_t)len, __ATOMIC_RELAXED);
             cmd_transport_diag_led_toggle_rx();
             (void)snprintf(line, sizeof(line), "USBJTAG RX byte=0x%02X\r\n", b);
             cmd_transport_usb_diag_write(line);
-            APP_LOGI(TAG, "USB_SERIAL_JTAG RX byte=0x%02X", b);
         }
     }
 }
