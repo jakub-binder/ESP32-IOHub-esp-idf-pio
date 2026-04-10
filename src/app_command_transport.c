@@ -42,6 +42,7 @@
 #define TRANSPORT_USB_HEARTBEAT_STACK_SIZE 3072
 #define TRANSPORT_USB_HEARTBEAT_PRIORITY   1
 #define TRANSPORT_USB_RX_TIMEOUT_MS        100
+#define TRANSPORT_USB_DIAG_LINE_BUF_SIZE   48
 
 static uint32_t s_uart0_rx_bytes;
 static uint32_t s_uart1_rx_bytes;
@@ -193,7 +194,7 @@ static void cmd_transport_diag_led_init(void)
 
 static void cmd_transport_diag_led_toggle_heartbeat(void)
 {
-    static bool heartbeat_on;
+    static bool heartbeat_on = false;
     heartbeat_on = !heartbeat_on;
     if (BOARD_USER_LED_PIN >= 0)
     {
@@ -203,7 +204,7 @@ static void cmd_transport_diag_led_toggle_heartbeat(void)
 
 static void cmd_transport_diag_led_toggle_rx(void)
 {
-    static bool rx_on;
+    static bool rx_on = false;
     rx_on = !rx_on;
     if (BOARD_USER_LED2_PIN >= 0)
     {
@@ -236,7 +237,7 @@ static void cmd_transport_usb_diag_task(void *arg)
 {
     uint8_t b;
     int len;
-    char line[48];
+    char line[TRANSPORT_USB_DIAG_LINE_BUF_SIZE];
     (void)arg;
 
     while (1)
@@ -412,7 +413,7 @@ void app_command_transport_init(void)
     }
 
 #if (APP_SERIAL_COMMAND_ENDPOINT == APP_SERIAL_ENDPOINT_USB_CDC)
-    APP_LOGW(TAG, "APP_COMMAND_ENDPOINT=USB_CDC selected, parser is still UART-only in current build");
+    APP_LOGW(TAG, "APP_SERIAL_COMMAND_ENDPOINT=USB_CDC selected, parser is still UART-only in current build");
     APP_LOGW(TAG, "Starting USB Serial JTAG diagnostics only (no command parsing)");
 #if CONFIG_SOC_USB_SERIAL_JTAG_SUPPORTED
     cmd_transport_init_usb_diag();
