@@ -174,6 +174,9 @@ void app_command_transport_init(void)
     /* ---------------------------------------------------------------
      * Production port: UART1
      * allow_debug_commands = false
+     * Each port is initialised independently: a failure on the debug
+     * port must not prevent the production port from starting, and
+     * vice versa.
      * --------------------------------------------------------------- */
     {
         const app_command_ctx_t ctx = {
