@@ -4,7 +4,6 @@
 #include "app_config.h"
 #include "app_log.h"
 #include "app_command_transport.h"
-#include "app_command_endpoint.h"
 #include "fixtures/fixture.h"
 
 void app_main(void)
@@ -13,10 +12,9 @@ void app_main(void)
 
     fixture_setup();
 
-    /* Initialise the peripheral driver for the active command endpoint,
-     * then wire its output callback into the command layer. */
+    /* Initialise both command transport ports (debug: UART0, prod: UART1).
+     * Each port manages its own endpoint, line buffer, and output callback. */
     app_command_transport_init();
-    app_command_endpoint_init(app_command_transport_write);
 
     while (1)
     {

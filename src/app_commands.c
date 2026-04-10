@@ -5,22 +5,23 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-#define APP_COMMANDS_LOG_TAG    "CMD"
 #define APP_COMMANDS_BUF_SIZE   128
 
+/* Legacy single-output fallback (used only by app_commands_handle_line). */
 static app_command_output_fn g_output = NULL;
 
-/* Send a formatted string to the active command output channel. */
-static void app_commands_printf(const char *fmt, ...)
+/* Send a formatted string to a specific command output channel. */
+static void app_commands_printf_to(app_command_output_fn output,
+                                   const char *fmt, ...)
 {
     char buf[APP_COMMANDS_BUF_SIZE];
     va_list args;
     va_start(args, fmt);
     vsnprintf(buf, sizeof(buf), fmt, args);
     va_end(args);
-    if (g_output != NULL)
+    if (output != NULL)
     {
-        g_output(buf);
+        output(buf);
     }
 }
 
@@ -29,15 +30,18 @@ void app_commands_init(app_command_output_fn output_cb)
     g_output = output_cb;
 }
 
-void app_commands_handle_line(const char *line)
+void app_commands_handle_line_ctx(const app_command_ctx_t *ctx, const char *line)
 {
     char buf[APP_COMMANDS_BUF_SIZE];
     const char *cmd;
+    app_command_output_fn output;
 
-    if (line == NULL || line[0] == '\0')
+    if (ctx == NULL || line == NULL || line[0] == '\0')
     {
         return;
     }
+
+    output = ctx->output;
 
     /* Copy to mutable buffer for strtok_r; ignore overlong lines. */
     strncpy(buf, line, sizeof(buf) - 1);
@@ -51,25 +55,49 @@ void app_commands_handle_line(const char *line)
         return;
     }
 
-    /* Dispatch – direct strcmp chain; extend here as new commands are added. */
+    /* --- Common commands (available on all ports) --- */
     if (strcmp(cmd, "firmware") == 0)
     {
-        app_command_system_firmware(g_output);
+        app_command_system_firmware(output);
     }
     else if (strcmp(cmd, "restart") == 0)
     {
-        app_command_system_restart(g_output);
+        app_command_system_restart(output);
     }
     else if (strcmp(cmd, "init") == 0)
     {
-        app_command_system_init(g_output);
+        app_command_system_init(output);
     }
     else if (strcmp(cmd, "info") == 0)
     {
-        app_command_system_info(g_output);
+        app_command_system_info(output);
     }
+    /* --- Debug-only commands (available only on debug port) ---
+     * No debug-only commands are defined yet.  Add them here with the guard:
+     *
+     *   else if (strcmp(cmd, "debug_cmd") == 0)
+     *   {
+     *       if (!ctx->allow_debug_commands)
+     *       {
+     *           app_commands_printf_to(output, "ERR not allowed\r\n");
+     *           return;
+     *       }
+     *       // ... handle debug_cmd ...
+     *   }
+     */
     else
     {
-        app_commands_printf("ERR unknown command: %s\r\n", cmd);
+        app_commands_printf_to(output, "ERR unknown command: %s\r\n", cmd);
     }
+}
+
+void app_commands_handle_line(const char *line)
+{
+    /* Legacy wrapper: build a context from the global output function. */
+    const app_command_ctx_t ctx = {
+        .source               = APP_CMD_SOURCE_UART0,
+        .output               = g_output,
+        .allow_debug_commands = true,
+    };
+    app_commands_handle_line_ctx(&ctx, line);
 }

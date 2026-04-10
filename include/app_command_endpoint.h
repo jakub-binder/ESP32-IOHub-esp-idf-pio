@@ -7,26 +7,44 @@
 extern "C" {
 #endif
 
+/* Maximum number of characters in one command line (including NUL terminator). */
+#define APP_COMMAND_LINE_BUFFER_SIZE    128
+
 /**
- * Initialize the active command endpoint.
- * Passes output_fn to the command layer and starts an internal FreeRTOS
- * task that reads characters from the console (getchar) and feeds them
- * into app_command_endpoint_on_char().
- *
- * Call once from app_main(), after fixture_setup().
- *
- * @param output_fn  Function used to write command responses to the channel.
+ * Per-port endpoint state.
+ * Each active command port (e.g. UART0, UART1) owns one instance.
+ * Initialize with app_command_endpoint_init_ex() before use.
  */
-void app_command_endpoint_init(app_command_output_fn output_fn);
+typedef struct
+{
+    char              line_buf[APP_COMMAND_LINE_BUFFER_SIZE];
+    int               pos;
+    app_command_ctx_t ctx;
+} app_command_endpoint_t;
+
+/**
+ * Initialize a command endpoint instance.
+ * Sets the context (source, output callback, debug-command gate) that will
+ * be forwarded to app_commands_handle_line_ctx() on each complete line.
+ *
+ * @param ep   Pointer to an endpoint instance (caller-allocated).
+ * @param ctx  Context to associate with this endpoint.
+ */
+void app_command_endpoint_init_ex(app_command_endpoint_t *ep,
+                                  app_command_ctx_t ctx);
 
 /**
  * Feed one received character into the endpoint line buffer.
- * On '\n' or '\r', the accumulated line is dispatched to app_commands_handle_line().
+ * On '\n' or '\r', the accumulated line is dispatched via
+ * app_commands_handle_line_ctx() using the context stored in ep->ctx.
  *
- * Intended to be called by a low-level RX driver (UART ISR, VFS task, etc.).
+ * Call this from the low-level RX driver (UART task, etc.).
  * Do NOT call this from fixture code.
+ *
+ * @param ep  Pointer to the endpoint instance for this port.
+ * @param c   Received character.
  */
-void app_command_endpoint_on_char(char c);
+void app_command_endpoint_on_char(app_command_endpoint_t *ep, char c);
 
 #ifdef __cplusplus
 }
