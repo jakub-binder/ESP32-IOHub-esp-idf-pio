@@ -77,7 +77,7 @@ static void uart0_rx_task(void *arg)
                               pdMS_TO_TICKS(20));
         if (len > 0)
         {
-            s_uart0_rx_bytes += (uint32_t)len;
+            __atomic_fetch_add(&s_uart0_rx_bytes, (uint32_t)len, __ATOMIC_RELAXED);
         }
         for (int i = 0; i < len; i++)
         {
@@ -98,7 +98,7 @@ static void uart1_rx_task(void *arg)
                               pdMS_TO_TICKS(20));
         if (len > 0)
         {
-            s_uart1_rx_bytes += (uint32_t)len;
+            __atomic_fetch_add(&s_uart1_rx_bytes, (uint32_t)len, __ATOMIC_RELAXED);
         }
         for (int i = 0; i < len; i++)
         {
@@ -116,9 +116,9 @@ static void transport_diag_task(void *arg)
 
     while (1)
     {
-        uint32_t now_uart0 = s_uart0_rx_bytes;
-        uint32_t now_uart1 = s_uart1_rx_bytes;
-        uint32_t now_usb   = s_usb_rx_bytes;
+        uint32_t now_uart0 = __atomic_load_n(&s_uart0_rx_bytes, __ATOMIC_RELAXED);
+        uint32_t now_uart1 = __atomic_load_n(&s_uart1_rx_bytes, __ATOMIC_RELAXED);
+        uint32_t now_usb   = __atomic_load_n(&s_usb_rx_bytes, __ATOMIC_RELAXED);
 
         APP_LOGI(TAG,
                  "diag rx bytes/2s: UART0=%lu(+%lu) UART1=%lu(+%lu) USBJTAG=%lu(+%lu)",
@@ -146,7 +146,7 @@ static void usb_serial_jtag_diag_task(void *arg)
         len = usb_serial_jtag_read_bytes(&b, 1, pdMS_TO_TICKS(20));
         if (len > 0)
         {
-            s_usb_rx_bytes += (uint32_t)len;
+            __atomic_fetch_add(&s_usb_rx_bytes, (uint32_t)len, __ATOMIC_RELAXED);
             APP_LOGI(TAG, "USB_SERIAL_JTAG RX byte=0x%02X", b);
         }
     }
@@ -165,7 +165,7 @@ static void init_usb_serial_jtag_diag(void)
         return;
     }
 
-    BaseType_t ret = xTaskCreate(usb_serial_jtag_diag_task, "cmd_rx_usbdiag",
+    BaseType_t ret = xTaskCreate(usb_serial_jtag_diag_task, "usb_diag_rx",
                                  4096, NULL, 5, NULL);
     if (ret != pdPASS)
     {
@@ -291,7 +291,7 @@ void app_command_transport_init(void)
         }
     }
 
-    BaseType_t diag_ret = xTaskCreate(transport_diag_task, "cmd_rx_diag",
+    BaseType_t diag_ret = xTaskCreate(transport_diag_task, "transport_diag",
                                       3072, NULL, 1, NULL);
     if (diag_ret != pdPASS)
     {
@@ -299,7 +299,7 @@ void app_command_transport_init(void)
     }
 
 #if (APP_SERIAL_COMMAND_ENDPOINT == APP_SERIAL_ENDPOINT_USB_CDC)
-    APP_LOGW(TAG, "APP_COMMAND_ENDPOINT=USB_CDC selected, but command parser is UART-only in current build");
+    APP_LOGW(TAG, "APP_COMMAND_ENDPOINT maps to USB_CDC, but command parser is UART-only in current build");
     APP_LOGW(TAG, "Starting USB Serial JTAG diagnostics only (no command parsing)");
 #if CONFIG_SOC_USB_SERIAL_JTAG_SUPPORTED
     init_usb_serial_jtag_diag();
