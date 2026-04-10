@@ -4,6 +4,9 @@ idf_component_register(
         "fixture_select.c"
         "fixtures/fixture_default.c"
         "fixtures/fixture_prod.c"
+        "app_commands.c"
+        "app_command_endpoint.c"
+        "app_command_system.c"
     INCLUDE_DIRS
         "."
         "../include"

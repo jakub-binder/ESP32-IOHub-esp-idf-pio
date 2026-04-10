@@ -45,6 +45,14 @@ extern "C" {
 #endif
 
 /* ---------------------------
+ * Firmware identification
+ * --------------------------- */
+
+#ifndef APP_FIRMWARE_ID
+#define APP_FIRMWARE_ID                   "ESP32-IOHub " FW_BOARD_NAME
+#endif
+
+/* ---------------------------
  * Build-time mode validation
  * --------------------------- */
 
