@@ -336,6 +336,15 @@ static bool gpio_debug_handle_out(const app_command_ctx_t *ctx,
     return true;
 }
 
+static bool gpio_debug_handle_help(const app_command_ctx_t *ctx)
+{
+    gpio_debug_printf(ctx->output, "gpio.help\r\n");
+    gpio_debug_printf(ctx->output, "gpio.get <pin>\r\n");
+    gpio_debug_printf(ctx->output, "gpio.in <pin> <none|up|down>\r\n");
+    gpio_debug_printf(ctx->output, "gpio.out <pin> <0|1>\r\n");
+    return true;
+}
+
 static bool gpio_debug_command_handler(const app_command_ctx_t *ctx,
                                        const char *cmd,
                                        char *args,
@@ -349,6 +358,7 @@ static bool gpio_debug_command_handler(const app_command_ctx_t *ctx,
     }
 
     if (strcmp(cmd, "gpio.get") != 0 &&
+        strcmp(cmd, "gpio.help") != 0 &&
         strcmp(cmd, "gpio.in") != 0 &&
         strcmp(cmd, "gpio.out") != 0)
     {
@@ -370,6 +380,11 @@ static bool gpio_debug_command_handler(const app_command_ctx_t *ctx,
     if (strcmp(cmd, "gpio.get") == 0)
     {
         return gpio_debug_handle_get(ctx, self, args);
+    }
+
+    if (strcmp(cmd, "gpio.help") == 0)
+    {
+        return gpio_debug_handle_help(ctx);
     }
 
     if (strcmp(cmd, "gpio.in") == 0)
