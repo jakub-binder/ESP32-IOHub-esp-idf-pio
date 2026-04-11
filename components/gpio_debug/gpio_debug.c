@@ -17,13 +17,13 @@ static bool gpio_debug_pin_is_mask_valid(int pin)
 
 static bool gpio_debug_policy_allows_pin(const gpio_debug_t *self, int pin)
 {
-    const uint64_t bit = (1ULL << (uint32_t)pin);
+    const uint64_t bit = gpio_debug_pin_to_mask(pin);
     return (self->config.policy.allowed_mask & bit) != 0;
 }
 
 static bool gpio_debug_policy_protects_pin(const gpio_debug_t *self, int pin)
 {
-    const uint64_t bit = (1ULL << (uint32_t)pin);
+    const uint64_t bit = gpio_debug_pin_to_mask(pin);
     return (self->config.policy.protected_mask & bit) != 0;
 }
 

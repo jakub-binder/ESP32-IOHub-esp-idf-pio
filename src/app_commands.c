@@ -151,9 +151,10 @@ void app_commands_handle_line_ctx(const app_command_ctx_t *ctx, const char *line
     else
     {
         size_t i;
+        char args_buf[APP_COMMANDS_BUF_SIZE];
+
         for (i = 0; i < g_custom_handler_count; i++)
         {
-            char args_buf[APP_COMMANDS_BUF_SIZE];
             char *args;
             bool handled;
 
