@@ -2,6 +2,7 @@ idf_component_register(
     SRCS
         "main.c"
         "fixture_select.c"
+        "fixtures/fixture.c"
         "fixtures/fixture_default.c"
         "fixtures/fixture_prod.c"
         "app_commands.c"

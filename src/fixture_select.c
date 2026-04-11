@@ -1,3 +1,5 @@
+#include <stddef.h>
+
 #include "app_config.h"
 #include "fixtures/fixture.h"
 
@@ -9,31 +11,13 @@
 #error "No fixture selected"
 #endif
 
-const fixture_info_t *fixture_get_info(void)
+const fixture_t *fixture_select(void)
 {
 #if defined(FIXTURE_DEFAULT)
-    return fixture_default_get_info();
+    return &fixture_default;
 #elif defined(FIXTURE_PROD)
-    return fixture_prod_get_info();
+    return &fixture_prod;
 #else
-    return 0;
-#endif
-}
-
-void fixture_setup(void)
-{
-#if defined(FIXTURE_DEFAULT)
-    fixture_default_setup();
-#elif defined(FIXTURE_PROD)
-    fixture_prod_setup();
-#endif
-}
-
-void fixture_loop(void)
-{
-#if defined(FIXTURE_DEFAULT)
-    fixture_default_loop();
-#elif defined(FIXTURE_PROD)
-    fixture_prod_loop();
+    return NULL;
 #endif
 }

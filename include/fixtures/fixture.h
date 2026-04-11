@@ -5,14 +5,22 @@
 extern "C" {
 #endif
 
-typedef struct
+typedef void (*fixture_setup_fn)(void);
+typedef void (*fixture_loop_fn)(void);
+typedef void (*fixture_register_commands_fn)(void);
+
+typedef struct fixture
 {
     const char *name;
-} fixture_info_t;
+    fixture_setup_fn setup;
+    fixture_loop_fn loop;
+    fixture_register_commands_fn register_commands;
+} fixture_t;
 
+const fixture_t *fixture_get_selected(void);
 void fixture_setup(void);
+void fixture_register_commands(void);
 void fixture_loop(void);
-const fixture_info_t *fixture_get_info(void);
 
 #ifdef __cplusplus
 }
