@@ -1,3 +1,5 @@
+#include <stddef.h>
+
 #include "fixtures/fixture.h"
 
 const fixture_t *fixture_select(void);
