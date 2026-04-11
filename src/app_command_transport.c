@@ -9,9 +9,6 @@
 
 #include "driver/uart.h"
 #include "driver/uart_vfs.h"
-#if APP_DIAG_USBJTAG
-#include "driver/gpio.h"
-#endif
 #if CONFIG_SOC_USB_SERIAL_JTAG_SUPPORTED
 #include "driver/usb_serial_jtag.h"
 #endif
@@ -39,11 +36,6 @@
 #define TRANSPORT_USB_DIAG_PRIORITY        5
 #define TRANSPORT_USB_RX_BUF               256
 #define TRANSPORT_USB_TX_BUF               256
-#if APP_DIAG_USBJTAG
-#define TRANSPORT_USB_HEARTBEAT_PERIOD_MS  1000
-#define TRANSPORT_USB_HEARTBEAT_STACK_SIZE 3072
-#define TRANSPORT_USB_HEARTBEAT_PRIORITY   1
-#endif
 #define TRANSPORT_USB_RX_TIMEOUT_MS        20
 
 static uint32_t s_uart0_rx_bytes;
@@ -162,89 +154,6 @@ static void cmd_transport_diag_task(void *arg)
 }
 
 #if CONFIG_SOC_USB_SERIAL_JTAG_SUPPORTED
-#if APP_DIAG_USBJTAG
-static bool cmd_transport_is_valid_led_pin(int pin)
-{
-    return (pin >= 0) && GPIO_IS_VALID_OUTPUT_GPIO(pin);
-}
-
-#if BOARD_HAS_USER_LED
-static void cmd_transport_diag_led_init(void)
-{
-    uint64_t pin_mask = 0;
-    if (cmd_transport_is_valid_led_pin(BOARD_USER_LED_PIN))
-    {
-        pin_mask |= (1ULL << BOARD_USER_LED_PIN);
-    }
-    if (cmd_transport_is_valid_led_pin(BOARD_USER_LED2_PIN))
-    {
-        pin_mask |= (1ULL << BOARD_USER_LED2_PIN);
-    }
-    if (pin_mask == 0)
-    {
-        return;
-    }
-
-    const gpio_config_t cfg = {
-        .pin_bit_mask = pin_mask,
-        .mode = GPIO_MODE_OUTPUT,
-        .pull_up_en = GPIO_PULLUP_DISABLE,
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type = GPIO_INTR_DISABLE,
-    };
-    (void)gpio_config(&cfg);
-    if (cmd_transport_is_valid_led_pin(BOARD_USER_LED_PIN))
-    {
-        (void)gpio_set_level(BOARD_USER_LED_PIN, 0);
-    }
-    if (cmd_transport_is_valid_led_pin(BOARD_USER_LED2_PIN))
-    {
-        (void)gpio_set_level(BOARD_USER_LED2_PIN, 0);
-    }
-}
-
-static void cmd_transport_diag_led_toggle_heartbeat(void)
-{
-    static bool heartbeat_on = false;
-    heartbeat_on = !heartbeat_on;
-    if (cmd_transport_is_valid_led_pin(BOARD_USER_LED_PIN))
-    {
-        (void)gpio_set_level(BOARD_USER_LED_PIN, heartbeat_on ? 1 : 0);
-    }
-}
-
-static void cmd_transport_diag_led_toggle_rx(void)
-{
-    static bool rx_on = false;
-    rx_on = !rx_on;
-    if (cmd_transport_is_valid_led_pin(BOARD_USER_LED2_PIN))
-    {
-        (void)gpio_set_level(BOARD_USER_LED2_PIN, rx_on ? 1 : 0);
-    }
-    else if (cmd_transport_is_valid_led_pin(BOARD_USER_LED_PIN))
-    {
-        (void)gpio_set_level(BOARD_USER_LED_PIN, rx_on ? 1 : 0);
-    }
-}
-#else
-static void cmd_transport_diag_led_init(void) {}
-static void cmd_transport_diag_led_toggle_heartbeat(void) {}
-static void cmd_transport_diag_led_toggle_rx(void) {}
-#endif
-
-static void cmd_transport_usb_heartbeat_task(void *arg)
-{
-    (void)arg;
-
-    while (1)
-    {
-        transport_write_usb_serial_jtag("USBJTAG alive\r\n");
-        cmd_transport_diag_led_toggle_heartbeat();
-        vTaskDelay(pdMS_TO_TICKS(TRANSPORT_USB_HEARTBEAT_PERIOD_MS));
-    }
-}
-#endif
-
 static void usb_serial_jtag_rx_task(void *arg)
 {
     uint8_t buf[TRANSPORT_READ_CHUNK];
@@ -257,9 +166,6 @@ static void usb_serial_jtag_rx_task(void *arg)
         if (len > 0)
         {
             __atomic_fetch_add(&s_usb_rx_bytes, (uint32_t)len, __ATOMIC_RELAXED);
-#if APP_DIAG_USBJTAG
-            cmd_transport_diag_led_toggle_rx();
-#endif
             for (int i = 0; i < len; i++)
             {
                 app_command_endpoint_on_char(&s_ep_usb, (char)buf[i]);
@@ -293,18 +199,6 @@ static void cmd_transport_init_usb_endpoint(void)
         };
         app_command_endpoint_init_ex(&s_ep_usb, ctx);
     }
-
-#if APP_DIAG_USBJTAG
-    cmd_transport_diag_led_init();
-
-    BaseType_t hb_ret = xTaskCreate(cmd_transport_usb_heartbeat_task, "usb_hb_tx",
-                                    TRANSPORT_USB_HEARTBEAT_STACK_SIZE, NULL,
-                                    TRANSPORT_USB_HEARTBEAT_PRIORITY, NULL);
-    if (hb_ret != pdPASS)
-    {
-        APP_LOGE(TAG, "xTaskCreate failed for usb_hb_tx: %d", (int)hb_ret);
-    }
-#endif
 
     BaseType_t ret = xTaskCreate(usb_serial_jtag_rx_task, "cmd_rx_usbjtag",
                                  TRANSPORT_USB_DIAG_STACK_SIZE, NULL,

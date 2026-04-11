@@ -152,11 +152,6 @@ Debug-only příkazy jsou povoleny pouze na debug portu (`UART0`).
 Na production portu (`UART1`) jsou debug-only příkazy odmítnuty.
 Na ESP32-S3 USB endpointu (`APP_COMMAND_ENDPOINT_USB_CDC`) jsou debug-only příkazy povolené.
 
-Volitelná USB diagnostika (heartbeat + LED blikání) je defaultně vypnutá:
-
-- `-DAPP_DIAG_USBJTAG=0` (výchozí)
-- `-DAPP_DIAG_USBJTAG=1` (jen pro HW diagnostiku)
-
 ## Příklad: přepnutí command rozhraní z USB na UART1
 
 V sekci `[env:esp32s3]` v `platformio.ini` nahraď:
@@ -171,7 +166,7 @@ za:
 
 1. Nahraj firmware pro `env:esp32s3` a otevři COM port s `VID:PID 303A:1001`.
 2. Pošli `help\n` (případně `init\n`).
-3. Očekávání: vrátí se odpověď z command systému (seznam příkazů nebo `Unknown command`), bez periodických `USBJTAG alive` diagnostických zpráv při výchozí konfiguraci.
+3. Očekávání: vrátí se odpověď z command systému (seznam příkazů nebo `Unknown command`) a neobjevují se periodické diagnostické výpisy.
 
 ---
 
