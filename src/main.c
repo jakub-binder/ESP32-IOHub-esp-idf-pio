@@ -16,6 +16,8 @@ void app_main(void)
      * Each port manages its own endpoint, line buffer, and output callback. */
     app_command_transport_init();
 
+    fixture_register_commands();
+
     while (1)
     {
         fixture_loop();

@@ -6,11 +6,6 @@
 #include "app_log.h"
 #include "board/board_pins.h"
 
-static const fixture_info_t g_fixture_info =
-{
-    .name = "FIXTURE_PROD"
-};
-
 static int64_t g_last_log_time_us = 0;
 
 static void fixture_prod_setup_impl(void);
@@ -24,11 +19,6 @@ const fixture_t fixture_prod =
     .loop = fixture_prod_loop_impl,
     .register_commands = fixture_prod_register_commands_impl
 };
-
-const fixture_info_t *fixture_prod_get_info(void)
-{
-    return &g_fixture_info;
-}
 
 static void fixture_prod_setup_impl(void)
 {

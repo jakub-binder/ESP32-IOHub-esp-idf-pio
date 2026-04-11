@@ -5,10 +5,6 @@
 const fixture_t *fixture_select(void);
 
 static const fixture_t *s_selected = NULL;
-static fixture_info_t s_fixture_info =
-{
-    .name = NULL
-};
 
 const fixture_t *fixture_get_selected(void)
 {
@@ -28,6 +24,11 @@ void fixture_setup(void)
     {
         fx->setup();
     }
+}
+
+void fixture_register_commands(void)
+{
+    const fixture_t *fx = fixture_get_selected();
 
     if (fx != NULL && fx->register_commands != NULL)
     {
@@ -43,16 +44,4 @@ void fixture_loop(void)
     {
         fx->loop();
     }
-}
-
-const fixture_info_t *fixture_get_info(void)
-{
-    const fixture_t *fx = fixture_get_selected();
-
-    if (fx != NULL)
-    {
-        s_fixture_info.name = fx->name;
-    }
-
-    return &s_fixture_info;
 }

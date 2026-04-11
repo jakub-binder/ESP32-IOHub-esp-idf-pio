@@ -8,7 +8,6 @@ extern "C" {
 #endif
 
 extern const fixture_t fixture_prod;
-const fixture_info_t *fixture_prod_get_info(void);
 
 #ifdef __cplusplus
 }

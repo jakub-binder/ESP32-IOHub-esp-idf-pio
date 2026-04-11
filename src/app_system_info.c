@@ -10,7 +10,7 @@
 void app_system_info_print(app_command_output_fn output)
 {
     char line[128];
-    const fixture_info_t *fi;
+    const fixture_t *fixture;
 
     if (output == NULL)
     {
@@ -42,10 +42,10 @@ void app_system_info_print(app_command_output_fn output)
              app_serial_endpoint_to_string(APP_SERIAL_COMMAND_ENDPOINT));
     output(line);
 
-    fi = fixture_get_info();
-    if (fi != NULL && fi->name != NULL)
+    fixture = fixture_get_selected();
+    if (fixture != NULL && fixture->name != NULL)
     {
-        snprintf(line, sizeof(line), "FIXTURE=%s\r\n", fi->name);
+        snprintf(line, sizeof(line), "FIXTURE=%s\r\n", fixture->name);
         output(line);
     }
 }
