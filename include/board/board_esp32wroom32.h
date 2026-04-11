@@ -7,7 +7,6 @@
  * Board capabilities
  * --------------------------- */
 #define BOARD_HAS_USB_CDC                0
-#define BOARD_HAS_USER_LED               0
 #define BOARD_HAS_UART1                  1
 #define BOARD_HAS_UART2                  1
 #define BOARD_HAS_I2C2                   1
