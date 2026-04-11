@@ -7,8 +7,7 @@
 extern "C" {
 #endif
 
-void fixture_default_setup(void);
-void fixture_default_loop(void);
+extern const fixture_t fixture_default;
 const fixture_info_t *fixture_default_get_info(void);
 
 #ifdef __cplusplus

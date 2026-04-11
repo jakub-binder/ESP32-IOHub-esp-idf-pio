@@ -7,8 +7,7 @@
 extern "C" {
 #endif
 
-void fixture_prod_setup(void);
-void fixture_prod_loop(void);
+extern const fixture_t fixture_prod;
 const fixture_info_t *fixture_prod_get_info(void);
 
 #ifdef __cplusplus
