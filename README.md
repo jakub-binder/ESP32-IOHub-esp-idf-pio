@@ -140,7 +140,7 @@ Projekt podporuje tato rozhraní pro příjem příkazů:
 
 - `APP_COMMAND_ENDPOINT_UART0` – UART0 (výchozí pro většinu desek)
 - `APP_COMMAND_ENDPOINT_UART1` – UART1 (hardwarový UART, nutná podpora desky)
-- `APP_COMMAND_ENDPOINT_USB_CDC` – USB CDC (pouze ESP32-S3)
+- `APP_COMMAND_ENDPOINT_USB_CDC` – na ESP32-S3 je implementováno přes USB Serial JTAG (COM port `VID:PID 303A:1001`)
 
 Výběr se nastavuje přes `build_flags` v sekci konkrétního prostředí.
 `APP_COMMAND_ENDPOINT` musí být vždy explicitně definován přes
@@ -150,6 +150,12 @@ Pokud zvolené rozhraní deska nepodporuje, překlad selže s chybou.
 
 Debug-only příkazy jsou povoleny pouze na debug portu (`UART0`).
 Na production portu (`UART1`) jsou debug-only příkazy odmítnuty.
+Na ESP32-S3 USB endpointu (`APP_COMMAND_ENDPOINT_USB_CDC`) jsou debug-only příkazy povolené.
+
+Volitelná USB diagnostika (heartbeat + LED blikání) je defaultně vypnutá:
+
+- `-DAPP_DIAG_USBJTAG=0` (výchozí)
+- `-DAPP_DIAG_USBJTAG=1` (jen pro HW diagnostiku)
 
 ## Příklad: přepnutí command rozhraní z USB na UART1
 
@@ -160,6 +166,12 @@ V sekci `[env:esp32s3]` v `platformio.ini` nahraď:
 za:
 
     -DAPP_COMMAND_ENDPOINT=APP_COMMAND_ENDPOINT_UART1
+
+## Rychlý test pro ESP32-S3 USB Serial JTAG
+
+1. Nahraj firmware pro `env:esp32s3` a otevři COM port s `VID:PID 303A:1001`.
+2. Pošli `help\n` (případně `init\n`).
+3. Očekávání: vrátí se odpověď z command systému (seznam příkazů nebo `Unknown command`), bez periodických `USBJTAG alive` diagnostických zpráv při výchozí konfiguraci.
 
 ---
 
