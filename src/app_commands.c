@@ -1,14 +1,36 @@
 #include "app_commands.h"
 #include "app_command_system.h"
+#include "gpio_debug.h"
 
 #include <string.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #define APP_COMMANDS_BUF_SIZE   128
 
 /* Legacy single-output fallback (used only by app_commands_handle_line). */
 static app_command_output_fn g_output = NULL;
+
+static bool app_commands_parse_int(const char *text, int *out_value)
+{
+    char *endptr;
+    long parsed;
+
+    if (text == NULL || out_value == NULL)
+    {
+        return false;
+    }
+
+    parsed = strtol(text, &endptr, 10);
+    if (*text == '\0' || *endptr != '\0')
+    {
+        return false;
+    }
+
+    *out_value = (int)parsed;
+    return true;
+}
 
 /* Send a formatted string to a specific command output channel. */
 static void app_commands_printf_to(app_command_output_fn output,
@@ -81,7 +103,7 @@ void app_commands_handle_line_ctx(const app_command_ctx_t *ctx, const char *line
             return;
         }
         app_commands_printf_to(output, "common: firmware, restart, init, info\r\n");
-        app_commands_printf_to(output, "debug: help, ports, debug\r\n");
+        app_commands_printf_to(output, "debug: help, ports, debug, gpio.get, gpio.in, gpio.out\r\n");
     }
     else if (strcmp(cmd, "ports") == 0)
     {
@@ -104,6 +126,156 @@ void app_commands_handle_line_ctx(const app_command_ctx_t *ctx, const char *line
         }
         app_commands_printf_to(output, "DEBUG OK\r\n");
         app_commands_printf_to(output, "source=%d\r\n", (int)ctx->source);
+    }
+    else if (strcmp(cmd, "gpio.get") == 0)
+    {
+        gpio_debug_t *gpio_debug;
+        char *pin_str;
+        int pin;
+        int level;
+        esp_err_t err;
+
+        if (!ctx->allow_debug_commands)
+        {
+            app_commands_printf_to(output, "ERR not allowed\r\n");
+            return;
+        }
+
+        gpio_debug = gpio_debug_get_registered();
+        if (gpio_debug == NULL)
+        {
+            app_commands_printf_to(output, "ERR not available\r\n");
+            return;
+        }
+
+        pin_str = strtok_r(NULL, " \t", &saveptr);
+        if (!app_commands_parse_int(pin_str, &pin))
+        {
+            app_commands_printf_to(output, "ERR usage: gpio.get <pin>\r\n");
+            return;
+        }
+
+        err = gpio_debug_get(gpio_debug, pin, &level);
+        if (err != ESP_OK)
+        {
+            app_commands_printf_to(output, "ERR %d\r\n", (int)err);
+            return;
+        }
+
+        app_commands_printf_to(output, "GPIO %d = %d\r\n", pin, level);
+    }
+    else if (strcmp(cmd, "gpio.in") == 0)
+    {
+        gpio_debug_t *gpio_debug;
+        char *pin_str;
+        char *pull_str;
+        int pin;
+        gpio_debug_pull_t pull;
+        esp_err_t err;
+
+        if (!ctx->allow_debug_commands)
+        {
+            app_commands_printf_to(output, "ERR not allowed\r\n");
+            return;
+        }
+
+        gpio_debug = gpio_debug_get_registered();
+        if (gpio_debug == NULL)
+        {
+            app_commands_printf_to(output, "ERR not available\r\n");
+            return;
+        }
+
+        pin_str = strtok_r(NULL, " \t", &saveptr);
+        pull_str = strtok_r(NULL, " \t", &saveptr);
+
+        if (!app_commands_parse_int(pin_str, &pin) || pull_str == NULL)
+        {
+            app_commands_printf_to(output, "ERR usage: gpio.in <pin> <none|up|down>\r\n");
+            return;
+        }
+
+        if (strcmp(pull_str, "none") == 0)
+        {
+            pull = GPIO_DEBUG_PULL_FLOATING;
+        }
+        else if (strcmp(pull_str, "up") == 0)
+        {
+            pull = GPIO_DEBUG_PULL_UP;
+        }
+        else if (strcmp(pull_str, "down") == 0)
+        {
+            pull = GPIO_DEBUG_PULL_DOWN;
+        }
+        else
+        {
+            app_commands_printf_to(output, "ERR usage: gpio.in <pin> <none|up|down>\r\n");
+            return;
+        }
+
+        err = gpio_debug_set_input(gpio_debug, pin, pull);
+        if (err != ESP_OK)
+        {
+            app_commands_printf_to(output, "ERR %d\r\n", (int)err);
+            return;
+        }
+
+        app_commands_printf_to(output, "OK\r\n");
+    }
+    else if (strcmp(cmd, "gpio.out") == 0)
+    {
+        gpio_debug_t *gpio_debug;
+        char *pin_str;
+        char *level_str;
+        int pin;
+        int level_raw;
+        gpio_debug_level_t level;
+        esp_err_t err;
+
+        if (!ctx->allow_debug_commands)
+        {
+            app_commands_printf_to(output, "ERR not allowed\r\n");
+            return;
+        }
+
+        gpio_debug = gpio_debug_get_registered();
+        if (gpio_debug == NULL)
+        {
+            app_commands_printf_to(output, "ERR not available\r\n");
+            return;
+        }
+
+        pin_str = strtok_r(NULL, " \t", &saveptr);
+        level_str = strtok_r(NULL, " \t", &saveptr);
+
+        if (!app_commands_parse_int(pin_str, &pin) || !app_commands_parse_int(level_str, &level_raw))
+        {
+            app_commands_printf_to(output, "ERR usage: gpio.out <pin> <0|1>\r\n");
+            return;
+        }
+
+        if (level_raw == 0)
+        {
+            level = GPIO_DEBUG_LEVEL_LOW;
+        }
+        else if (level_raw == 1)
+        {
+            level = GPIO_DEBUG_LEVEL_HIGH;
+        }
+        else
+        {
+            app_commands_printf_to(output, "ERR usage: gpio.out <pin> <0|1>\r\n");
+            return;
+        }
+
+        err = gpio_debug_set_output(gpio_debug, pin, level);
+        if (err != ESP_OK)
+        {
+            app_commands_printf_to(output, "ERR %d\r\n", (int)err);
+            return;
+        }
+
+        app_commands_printf_to(output, "OK\r\n");
     }
     else
     {
