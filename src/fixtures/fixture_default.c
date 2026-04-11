@@ -50,4 +50,5 @@ static void fixture_default_loop_impl(void)
 
 static void fixture_default_register_commands_impl(void)
 {
+    /* No fixture-specific commands yet. */
 }

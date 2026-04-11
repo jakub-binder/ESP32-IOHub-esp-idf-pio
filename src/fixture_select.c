@@ -1,3 +1,5 @@
+#include <stddef.h>
+
 #include "app_config.h"
 #include "fixtures/fixture.h"
 
@@ -16,6 +18,6 @@ const fixture_t *fixture_select(void)
 #elif defined(FIXTURE_PROD)
     return &fixture_prod;
 #else
-    return 0;
+    return NULL;
 #endif
 }
