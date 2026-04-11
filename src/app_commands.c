@@ -1,14 +1,26 @@
 #include "app_commands.h"
 #include "app_command_system.h"
 
+#include <stddef.h>
 #include <string.h>
 #include <stdarg.h>
 #include <stdio.h>
 
 #define APP_COMMANDS_BUF_SIZE   128
+#define APP_COMMANDS_MAX_CUSTOM_HANDLERS 8
 
 /* Legacy single-output fallback (used only by app_commands_handle_line). */
 static app_command_output_fn g_output = NULL;
+
+typedef struct
+{
+    app_command_custom_handler_fn handler;
+    void *user_ctx;
+} app_commands_custom_handler_entry_t;
+
+static app_commands_custom_handler_entry_t
+    g_custom_handlers[APP_COMMANDS_MAX_CUSTOM_HANDLERS];
+static size_t g_custom_handler_count = 0;
 
 /* Send a formatted string to a specific command output channel. */
 static void app_commands_printf_to(app_command_output_fn output,
@@ -28,6 +40,37 @@ static void app_commands_printf_to(app_command_output_fn output,
 void app_commands_init(app_command_output_fn output_cb)
 {
     g_output = output_cb;
+}
+
+bool app_commands_register_custom_handler(app_command_custom_handler_fn handler,
+                                          void *user_ctx)
+{
+    size_t i;
+
+    if (handler == NULL)
+    {
+        return false;
+    }
+
+    for (i = 0; i < g_custom_handler_count; i++)
+    {
+        if (g_custom_handlers[i].handler == handler &&
+            g_custom_handlers[i].user_ctx == user_ctx)
+        {
+            return true;
+        }
+    }
+
+    if (g_custom_handler_count >= APP_COMMANDS_MAX_CUSTOM_HANDLERS)
+    {
+        return false;
+    }
+
+    g_custom_handlers[g_custom_handler_count].handler = handler;
+    g_custom_handlers[g_custom_handler_count].user_ctx = user_ctx;
+    g_custom_handler_count++;
+
+    return true;
 }
 
 void app_commands_handle_line_ctx(const app_command_ctx_t *ctx, const char *line)
@@ -107,6 +150,31 @@ void app_commands_handle_line_ctx(const app_command_ctx_t *ctx, const char *line
     }
     else
     {
+        size_t i;
+        char args_buf[APP_COMMANDS_BUF_SIZE];
+
+        for (i = 0; i < g_custom_handler_count; i++)
+        {
+            char *args;
+            bool handled;
+
+            if (saveptr != NULL)
+            {
+                snprintf(args_buf, sizeof(args_buf), "%s", saveptr);
+            }
+            else
+            {
+                args_buf[0] = '\0';
+            }
+
+            args = args_buf;
+            handled = g_custom_handlers[i].handler(ctx, cmd, args,
+                                                   g_custom_handlers[i].user_ctx);
+            if (handled)
+            {
+                return;
+            }
+        }
         app_commands_printf_to(output, "ERR unknown command: %s\r\n", cmd);
     }
 }

@@ -5,8 +5,10 @@
 #include "app_config.h"
 #include "app_log.h"
 #include "board/board_pins.h"
+#include "gpio_debug.h"
 
 static int64_t g_last_log_time_us = 0;
+static gpio_debug_t g_gpio_debug;
 
 static void fixture_prod_setup_impl(void);
 static void fixture_prod_loop_impl(void);
@@ -22,8 +24,26 @@ const fixture_t fixture_prod =
 
 static void fixture_prod_setup_impl(void)
 {
+    const gpio_debug_config_t gpio_debug_cfg = {
+        .policy = {
+            .allowed_mask = UINT64_MAX,
+            .protected_mask =
+                gpio_debug_pin_to_mask(BOARD_UART0_TX_PIN) |
+                gpio_debug_pin_to_mask(BOARD_UART0_RX_PIN) |
+                gpio_debug_pin_to_mask(BOARD_UART1_TX_PIN) |
+                gpio_debug_pin_to_mask(BOARD_UART1_RX_PIN),
+        },
+    };
+    esp_err_t err;
+
     APP_LOGI(APP_FIXTURE_LOG_TAG, "fixture_prod_setup()");
     APP_LOGI(APP_FIXTURE_LOG_TAG, "Running on board: %s", BOARD_NAME);
+
+    err = gpio_debug_init(&g_gpio_debug, &gpio_debug_cfg);
+    if (err != ESP_OK)
+    {
+        APP_LOGE(APP_FIXTURE_LOG_TAG, "gpio_debug_init failed: %d", (int)err);
+    }
 }
 
 static void fixture_prod_loop_impl(void)
@@ -40,5 +60,9 @@ static void fixture_prod_loop_impl(void)
 
 static void fixture_prod_register_commands_impl(void)
 {
-    /* No fixture-specific commands yet. */
+    const esp_err_t err = gpio_debug_register_commands(&g_gpio_debug);
+    if (err != ESP_OK)
+    {
+        APP_LOGE(APP_FIXTURE_LOG_TAG, "gpio_debug_register_commands failed: %d", (int)err);
+    }
 }
