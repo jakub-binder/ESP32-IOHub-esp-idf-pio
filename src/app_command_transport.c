@@ -173,15 +173,6 @@ static void cmd_transport_init_usb_endpoint(void)
     BaseType_t ret = xTaskCreate(usb_serial_jtag_rx_task, "cmd_rx_usbjtag",
                                  TRANSPORT_USB_DIAG_STACK_SIZE, NULL,
                                  TRANSPORT_USB_DIAG_PRIORITY, NULL);
-    if (ret != pdPASS)
-    {
-        APP_LOGE(TAG, "xTaskCreate failed for cmd_rx_usbjtag: %d", (int)ret);
-        APP_LOGE(TAG, "commands over USB Serial JTAG will not work");
-    }
-    else
-    {
-        APP_LOGI(TAG, "command endpoint initialized: USB Serial JTAG");
-    }
 }
 #endif
 
@@ -233,8 +224,6 @@ static bool init_uart(uart_port_t port, int tx_pin, int rx_pin,
 
 void app_command_transport_init(void)
 {
-    APP_LOGI(TAG, "active command endpoint: %s", app_serial_endpoint_to_string(APP_SERIAL_COMMAND_ENDPOINT));
-
     /* ---------------------------------------------------------------
      * Debug port: UART0
      * allow_debug_commands = true
@@ -258,14 +247,6 @@ void app_command_transport_init(void)
 
         BaseType_t ret = xTaskCreate(uart0_rx_task, "cmd_rx_uart0",
                                      4096, NULL, 5, NULL);
-        if (ret != pdPASS)
-        {
-            APP_LOGE(TAG, "xTaskCreate failed for cmd_rx_uart0");
-        }
-        else
-        {
-            APP_LOGI(TAG, "debug port: UART0 initialised");
-        }
     }
 
     /* ---------------------------------------------------------------
@@ -290,23 +271,11 @@ void app_command_transport_init(void)
     {
         BaseType_t ret = xTaskCreate(uart1_rx_task, "cmd_rx_uart1",
                                      4096, NULL, 5, NULL);
-        if (ret != pdPASS)
-        {
-            APP_LOGE(TAG, "xTaskCreate failed for cmd_rx_uart1");
-        }
-        else
-        {
-            APP_LOGI(TAG, "production port: UART1 initialised");
-        }
     }
 
 #if (APP_SERIAL_COMMAND_ENDPOINT == APP_SERIAL_ENDPOINT_USB_CDC)
-    APP_LOGI(TAG, "selected command endpoint USB_CDC is implemented via USB Serial JTAG");
 #if CONFIG_SOC_USB_SERIAL_JTAG_SUPPORTED
     cmd_transport_init_usb_endpoint();
-#else
-    APP_LOGE(TAG, "USB Serial JTAG not supported by current target/config");
-    APP_LOGE(TAG, "commands over USB will not work");
 #endif
 #endif
 

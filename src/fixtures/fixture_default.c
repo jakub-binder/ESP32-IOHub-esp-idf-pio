@@ -32,6 +32,6 @@ void fixture_default_loop(void)
     if ((now_us - g_last_log_time_us) >= period_us)
     {
         g_last_log_time_us = now_us;
-        APP_LOGI(APP_FIXTURE_LOG_TAG, "[DEFAULT] heartbeat");
+        //APP_LOGI(APP_FIXTURE_LOG_TAG, "[DEFAULT] heartbeat");
     }
 }
