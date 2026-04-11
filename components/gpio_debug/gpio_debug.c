@@ -3,6 +3,8 @@
 #include "app_commands.h"
 #include "driver/gpio.h"
 
+#include <errno.h>
+#include <limits.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -203,8 +205,10 @@ static bool gpio_debug_parse_int(const char *text, int *out_value)
         return false;
     }
 
+    errno = 0;
     parsed = strtol(text, &endptr, 10);
-    if (*endptr != '\0')
+    if (*endptr != '\0' || errno == ERANGE ||
+        parsed < INT_MIN || parsed > INT_MAX)
     {
         return false;
     }

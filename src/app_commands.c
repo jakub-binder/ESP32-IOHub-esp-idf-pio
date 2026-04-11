@@ -160,8 +160,7 @@ void app_commands_handle_line_ctx(const app_command_ctx_t *ctx, const char *line
 
             if (saveptr != NULL)
             {
-                strncpy(args_buf, saveptr, sizeof(args_buf) - 1);
-                args_buf[sizeof(args_buf) - 1] = '\0';
+                snprintf(args_buf, sizeof(args_buf), "%s", saveptr);
             }
             else
             {
