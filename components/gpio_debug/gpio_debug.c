@@ -251,7 +251,8 @@ static bool gpio_debug_handle_in(const app_command_ctx_t *ctx,
     gpio_debug_pull_t pull;
     esp_err_t err;
 
-    if (!gpio_debug_parse_int(pin_str, &pin) || pull_str == NULL)
+    if (pin_str == NULL || pull_str == NULL ||
+        !gpio_debug_parse_int(pin_str, &pin))
     {
         gpio_debug_printf(ctx->output, "ERR usage: gpio.in <pin> <none|up|down>\r\n");
         return true;
@@ -298,7 +299,8 @@ static bool gpio_debug_handle_out(const app_command_ctx_t *ctx,
     gpio_debug_level_t level;
     esp_err_t err;
 
-    if (!gpio_debug_parse_int(pin_str, &pin) ||
+    if (pin_str == NULL || level_str == NULL ||
+        !gpio_debug_parse_int(pin_str, &pin) ||
         !gpio_debug_parse_int(level_str, &level_raw))
     {
         gpio_debug_printf(ctx->output, "ERR usage: gpio.out <pin> <0|1>\r\n");

@@ -154,7 +154,7 @@ void app_commands_handle_line_ctx(const app_command_ctx_t *ctx, const char *line
         for (i = 0; i < g_custom_handler_count; i++)
         {
             char args_buf[APP_COMMANDS_BUF_SIZE];
-            char *args = args_buf;
+            char *args;
             bool handled;
 
             if (saveptr != NULL)
@@ -167,6 +167,7 @@ void app_commands_handle_line_ctx(const app_command_ctx_t *ctx, const char *line
                 args_buf[0] = '\0';
             }
 
+            args = args_buf;
             handled = g_custom_handlers[i].handler(ctx, cmd, args,
                                                    g_custom_handlers[i].user_ctx);
             if (handled)
