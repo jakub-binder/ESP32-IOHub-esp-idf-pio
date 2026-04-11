@@ -22,8 +22,13 @@ static bool app_commands_parse_int(const char *text, int *out_value)
         return false;
     }
 
+    if (*text == '\0')
+    {
+        return false;
+    }
+
     parsed = strtol(text, &endptr, 10);
-    if (*text == '\0' || *endptr != '\0')
+    if (*endptr != '\0')
     {
         return false;
     }
