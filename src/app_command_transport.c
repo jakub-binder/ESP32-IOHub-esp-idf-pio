@@ -28,9 +28,6 @@
 
 /* Max bytes consumed per single uart_read_bytes() call. */
 #define TRANSPORT_READ_CHUNK    64
-#define TRANSPORT_DIAG_LOG_PERIOD_MS       2000
-#define TRANSPORT_DIAG_TASK_STACK_SIZE     3072
-#define TRANSPORT_DIAG_TASK_PRIORITY       1
 /* Keep same sizing as UART RX tasks for comparable runtime footprint. */
 #define TRANSPORT_USB_DIAG_STACK_SIZE      4096
 #define TRANSPORT_USB_DIAG_PRIORITY        5
@@ -123,33 +120,6 @@ static void uart1_rx_task(void *arg)
         {
             app_command_endpoint_on_char(&s_ep_prod, (char)buf[i]);
         }
-    }
-}
-
-static void cmd_transport_diag_task(void *arg)
-{
-    uint32_t prev_uart0 = 0;
-    uint32_t prev_uart1 = 0;
-    uint32_t prev_usb   = 0;
-    (void)arg;
-
-    while (1)
-    {
-        uint32_t now_uart0 = __atomic_load_n(&s_uart0_rx_bytes, __ATOMIC_RELAXED);
-        uint32_t now_uart1 = __atomic_load_n(&s_uart1_rx_bytes, __ATOMIC_RELAXED);
-        uint32_t now_usb   = __atomic_load_n(&s_usb_rx_bytes, __ATOMIC_RELAXED);
-
-        APP_LOGI(TAG,
-                 "diag rx bytes/2s: UART0=%lu(+%lu) UART1=%lu(+%lu) USB_SERIAL_JTAG=%lu(+%lu)",
-                 (unsigned long)now_uart0, (unsigned long)(now_uart0 - prev_uart0),
-                 (unsigned long)now_uart1, (unsigned long)(now_uart1 - prev_uart1),
-                 (unsigned long)now_usb, (unsigned long)(now_usb - prev_usb));
-
-        prev_uart0 = now_uart0;
-        prev_uart1 = now_uart1;
-        prev_usb = now_usb;
-
-        vTaskDelay(pdMS_TO_TICKS(TRANSPORT_DIAG_LOG_PERIOD_MS));
     }
 }
 
@@ -328,14 +298,6 @@ void app_command_transport_init(void)
         {
             APP_LOGI(TAG, "production port: UART1 initialised");
         }
-    }
-
-    BaseType_t diag_ret = xTaskCreate(cmd_transport_diag_task, "transport_diag",
-                                      TRANSPORT_DIAG_TASK_STACK_SIZE, NULL,
-                                      TRANSPORT_DIAG_TASK_PRIORITY, NULL);
-    if (diag_ret != pdPASS)
-    {
-        APP_LOGE(TAG, "xTaskCreate failed for transport_diag");
     }
 
 #if (APP_SERIAL_COMMAND_ENDPOINT == APP_SERIAL_ENDPOINT_USB_CDC)
