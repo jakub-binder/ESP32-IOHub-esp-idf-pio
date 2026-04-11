@@ -270,7 +270,7 @@ static void usb_serial_jtag_rx_task(void *arg)
 
 static void cmd_transport_init_usb_endpoint(void)
 {
-    const usb_serial_jtag_driver_config_t usb_cfg = {
+    usb_serial_jtag_driver_config_t usb_cfg = {
         .tx_buffer_size = TRANSPORT_USB_TX_BUF,
         .rx_buffer_size = TRANSPORT_USB_RX_BUF,
     };
