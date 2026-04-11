@@ -49,7 +49,7 @@ esp_err_t gpio_debug_set_output(gpio_debug_t *self, int pin, gpio_debug_level_t 
 esp_err_t gpio_debug_get(gpio_debug_t *self, int pin, int *out_level);
 
 esp_err_t gpio_debug_register_commands(gpio_debug_t *self);
-gpio_debug_t *gpio_debug_get_registered(void);
+uint64_t gpio_debug_pin_to_mask(int pin);
 
 #ifdef __cplusplus
 }

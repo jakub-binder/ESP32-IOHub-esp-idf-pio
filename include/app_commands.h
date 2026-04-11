@@ -31,6 +31,11 @@ typedef struct
     bool                  allow_debug_commands;
 } app_command_ctx_t;
 
+typedef bool (*app_command_custom_handler_fn)(const app_command_ctx_t *ctx,
+                                              const char *cmd,
+                                              char *args,
+                                              void *user_ctx);
+
 /**
  * Process one complete text line using a full per-port context.
  * The context carries the output callback (response routing) and the
@@ -53,6 +58,9 @@ void app_commands_init(app_command_output_fn output_cb);
  * @deprecated  Use app_commands_handle_line_ctx() directly.
  */
 void app_commands_handle_line(const char *line);
+
+bool app_commands_register_custom_handler(app_command_custom_handler_fn handler,
+                                          void *user_ctx);
 
 #ifdef __cplusplus
 }

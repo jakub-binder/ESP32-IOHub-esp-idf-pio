@@ -10,15 +10,6 @@
 static int64_t g_last_log_time_us = 0;
 static gpio_debug_t g_gpio_debug;
 
-static uint64_t fixture_default_mask_for_pin(int pin)
-{
-    if (pin < 0 || pin >= 64)
-    {
-        return 0;
-    }
-    return (1ULL << (uint32_t)pin);
-}
-
 static void fixture_default_setup_impl(void);
 static void fixture_default_loop_impl(void);
 static void fixture_default_register_commands_impl(void);
@@ -37,10 +28,10 @@ static void fixture_default_setup_impl(void)
         .policy = {
             .allowed_mask = UINT64_MAX,
             .protected_mask =
-                fixture_default_mask_for_pin(BOARD_UART0_TX_PIN) |
-                fixture_default_mask_for_pin(BOARD_UART0_RX_PIN) |
-                fixture_default_mask_for_pin(BOARD_UART1_TX_PIN) |
-                fixture_default_mask_for_pin(BOARD_UART1_RX_PIN),
+                gpio_debug_pin_to_mask(BOARD_UART0_TX_PIN) |
+                gpio_debug_pin_to_mask(BOARD_UART0_RX_PIN) |
+                gpio_debug_pin_to_mask(BOARD_UART1_TX_PIN) |
+                gpio_debug_pin_to_mask(BOARD_UART1_RX_PIN),
         },
     };
     esp_err_t err;
