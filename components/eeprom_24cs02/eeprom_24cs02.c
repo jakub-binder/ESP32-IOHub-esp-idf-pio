@@ -20,6 +20,9 @@
 #define EEPROM_24CS02_WRITE_CYCLE_DELAY_MS 5U
 #define EEPROM_24CS02_I2C_TIMEOUT_MS      100U
 
+static const char *const EEPROM_24CS02_CMD_HELP = "eeprom.help";
+static const char *const EEPROM_24CS02_CMD_READ16 = "eeprom.read16";
+
 static bool eeprom_24cs02_is_ready(const eeprom_24cs02_t *ctx)
 {
     return (ctx != NULL) && ctx->initialized;
@@ -112,9 +115,16 @@ esp_err_t eeprom_24cs02_write(eeprom_24cs02_t *ctx,
     while (offset < len)
     {
         uint8_t tx[1 + EEPROM_24CS02_PAGE_SIZE_BYTES];
-        const uint8_t addr = (uint8_t)((size_t)mem_addr + offset);
+        const size_t current_addr = (size_t)mem_addr + offset;
+        uint8_t addr;
         esp_err_t err;
 
+        if (current_addr >= EEPROM_24CS02_MEM_SIZE_BYTES)
+        {
+            return ESP_ERR_INVALID_ARG;
+        }
+
+        addr = (uint8_t)current_addr;
         tx[0] = addr;
         memcpy(&tx[1], &src[offset], EEPROM_24CS02_PAGE_SIZE_BYTES);
 
@@ -175,8 +185,8 @@ static bool eeprom_24cs02_parse_u8(const char *text, uint8_t *out_value)
 
 static bool eeprom_24cs02_is_supported_command(const char *cmd)
 {
-    return (strcmp(cmd, "eeprom.help") == 0) ||
-           (strcmp(cmd, "eeprom.read16") == 0);
+    return (strcmp(cmd, EEPROM_24CS02_CMD_HELP) == 0) ||
+           (strcmp(cmd, EEPROM_24CS02_CMD_READ16) == 0);
 }
 
 static bool eeprom_24cs02_handle_help(const app_command_ctx_t *cmd_ctx)
@@ -248,7 +258,7 @@ static bool eeprom_24cs02_command_handler(const app_command_ctx_t *cmd_ctx,
         return true;
     }
 
-    if (strcmp(cmd, "eeprom.help") == 0)
+    if (strcmp(cmd, EEPROM_24CS02_CMD_HELP) == 0)
     {
         return eeprom_24cs02_handle_help(cmd_ctx);
     }
