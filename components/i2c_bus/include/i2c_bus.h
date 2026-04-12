@@ -31,8 +31,16 @@ typedef struct
     bool pullup_enable;
 } i2c_bus_config_t;
 
+typedef enum
+{
+    I2C_BUS_PINS_STATE_KEEP = 0,
+    I2C_BUS_PINS_STATE_HIZ
+} i2c_bus_pins_state_t;
+
 esp_err_t i2c_bus_init(i2c_bus_t *bus, const i2c_bus_config_t *cfg);
 esp_err_t i2c_bus_deinit(i2c_bus_t *bus);
+esp_err_t i2c_bus_set_pins_state(const i2c_bus_t *bus,
+                                 i2c_bus_pins_state_t state);
 bool i2c_bus_is_initialized(const i2c_bus_t *bus);
 i2c_port_t i2c_bus_port(const i2c_bus_t *bus);
 
