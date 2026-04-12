@@ -15,6 +15,19 @@ static bool i2c_bus_gpio_is_valid(gpio_num_t pin)
     return GPIO_IS_VALID_GPIO(pin);
 }
 
+static esp_err_t i2c_bus_configure_pin_hiz(gpio_num_t pin)
+{
+    const gpio_config_t gpio_cfg = {
+        .pin_bit_mask = (1ULL << pin),
+        .mode = GPIO_MODE_INPUT,
+        .pull_up_en = GPIO_PULLUP_DISABLE,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .intr_type = GPIO_INTR_DISABLE,
+    };
+
+    return gpio_config(&gpio_cfg);
+}
+
 bool i2c_bus_is_initialized(const i2c_bus_t *bus)
 {
     return (bus != NULL) && bus->initialized;
@@ -110,4 +123,53 @@ esp_err_t i2c_bus_deinit(i2c_bus_t *bus)
     bus->initialized = false;
     ESP_LOGI(I2C_BUS_TAG, "deinitialized: port=%d", (int)bus->port);
     return ESP_OK;
+}
+
+esp_err_t i2c_bus_set_pins_state(const i2c_bus_t *bus,
+                                 i2c_bus_pins_state_t state)
+{
+    esp_err_t err;
+
+    if (bus == NULL)
+    {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    switch (state)
+    {
+        case I2C_BUS_PINS_STATE_KEEP:
+            return ESP_OK;
+
+        case I2C_BUS_PINS_STATE_HIZ:
+            if (!i2c_bus_gpio_is_valid(bus->sda_pin) ||
+                !i2c_bus_gpio_is_valid(bus->scl_pin))
+            {
+                ESP_LOGE(I2C_BUS_TAG, "invalid I2C pins for HIZ: sda=%d scl=%d",
+                         (int)bus->sda_pin, (int)bus->scl_pin);
+                return ESP_ERR_INVALID_ARG;
+            }
+
+            err = i2c_bus_configure_pin_hiz(bus->sda_pin);
+            if (err != ESP_OK)
+            {
+                ESP_LOGE(I2C_BUS_TAG, "failed to set SDA pin to HIZ: pin=%d err=%d",
+                         (int)bus->sda_pin, (int)err);
+                return err;
+            }
+
+            err = i2c_bus_configure_pin_hiz(bus->scl_pin);
+            if (err != ESP_OK)
+            {
+                ESP_LOGE(I2C_BUS_TAG, "failed to set SCL pin to HIZ: pin=%d err=%d",
+                         (int)bus->scl_pin, (int)err);
+                return err;
+            }
+
+            ESP_LOGI(I2C_BUS_TAG, "pins set to HIZ: sda=%d scl=%d",
+                     (int)bus->sda_pin, (int)bus->scl_pin);
+            return ESP_OK;
+
+        default:
+            return ESP_ERR_INVALID_ARG;
+    }
 }
