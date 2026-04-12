@@ -15,10 +15,10 @@ static bool i2c_bus_gpio_is_valid(gpio_num_t pin)
     return GPIO_IS_VALID_GPIO(pin);
 }
 
-static esp_err_t i2c_bus_configure_pin_hiz(gpio_num_t pin)
+static esp_err_t i2c_bus_configure_pins_hiz(gpio_num_t sda_pin, gpio_num_t scl_pin)
 {
     const gpio_config_t gpio_cfg = {
-        .pin_bit_mask = (1ULL << pin),
+        .pin_bit_mask = (1ULL << sda_pin) | (1ULL << scl_pin),
         .mode = GPIO_MODE_INPUT,
         .pull_up_en = GPIO_PULLUP_DISABLE,
         .pull_down_en = GPIO_PULLDOWN_DISABLE,
@@ -149,19 +149,11 @@ esp_err_t i2c_bus_set_pins_state(const i2c_bus_t *bus,
                 return ESP_ERR_INVALID_ARG;
             }
 
-            err = i2c_bus_configure_pin_hiz(bus->sda_pin);
+            err = i2c_bus_configure_pins_hiz(bus->sda_pin, bus->scl_pin);
             if (err != ESP_OK)
             {
-                ESP_LOGE(I2C_BUS_TAG, "failed to set SDA pin to HIZ: pin=%d err=%d",
-                         (int)bus->sda_pin, (int)err);
-                return err;
-            }
-
-            err = i2c_bus_configure_pin_hiz(bus->scl_pin);
-            if (err != ESP_OK)
-            {
-                ESP_LOGE(I2C_BUS_TAG, "failed to set SCL pin to HIZ: pin=%d err=%d",
-                         (int)bus->scl_pin, (int)err);
+                ESP_LOGE(I2C_BUS_TAG, "failed to set I2C pins to HIZ: sda=%d scl=%d err=%d",
+                         (int)bus->sda_pin, (int)bus->scl_pin, (int)err);
                 return err;
             }
 
