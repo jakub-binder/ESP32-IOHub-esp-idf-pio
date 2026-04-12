@@ -11,11 +11,20 @@ void app_system_info_print(app_command_output_fn output)
 {
     char line[128];
     const fixture_t *fixture;
+    size_t data_line_count = 8U;
 
     if (output == NULL)
     {
         return;
     }
+
+    fixture = fixture_get_selected();
+    if (fixture != NULL && fixture->name != NULL)
+    {
+        data_line_count++;
+    }
+
+    app_commands_respond_ok_with_count(output, data_line_count);
 
     snprintf(line, sizeof(line), "FW_BOARD_NAME=%s\r\n", FW_BOARD_NAME);
     output(line);
@@ -42,7 +51,6 @@ void app_system_info_print(app_command_output_fn output)
              app_serial_endpoint_to_string(APP_SERIAL_COMMAND_ENDPOINT));
     output(line);
 
-    fixture = fixture_get_selected();
     if (fixture != NULL && fixture->name != NULL)
     {
         snprintf(line, sizeof(line), "FIXTURE=%s\r\n", fixture->name);

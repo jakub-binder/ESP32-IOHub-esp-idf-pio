@@ -37,6 +37,17 @@ static void app_commands_printf_to(app_command_output_fn output,
     }
 }
 
+void app_commands_respond_ok(app_command_output_fn output)
+{
+    app_commands_printf_to(output, "OK-0\r\n");
+}
+
+void app_commands_respond_ok_with_count(app_command_output_fn output,
+                                        size_t data_line_count)
+{
+    app_commands_printf_to(output, "OK-%zu\r\n", data_line_count);
+}
+
 void app_commands_init(app_command_output_fn output_cb)
 {
     g_output = output_cb;
@@ -123,6 +134,7 @@ void app_commands_handle_line_ctx(const app_command_ctx_t *ctx, const char *line
             app_commands_printf_to(output, "ERR not allowed\r\n");
             return;
         }
+        app_commands_respond_ok_with_count(output, 2U);
         app_commands_printf_to(output, "common: firmware, restart, init, info\r\n");
         app_commands_printf_to(output, "debug: help, ports, debug\r\n");
     }
@@ -133,6 +145,7 @@ void app_commands_handle_line_ctx(const app_command_ctx_t *ctx, const char *line
             app_commands_printf_to(output, "ERR not allowed\r\n");
             return;
         }
+        app_commands_respond_ok_with_count(output, 3U);
         app_commands_printf_to(output, "debug_port=UART0\r\n");
         app_commands_printf_to(output, "production_port=UART1\r\n");
         app_commands_printf_to(output, "allow_debug_commands=%d\r\n",
@@ -145,6 +158,7 @@ void app_commands_handle_line_ctx(const app_command_ctx_t *ctx, const char *line
             app_commands_printf_to(output, "ERR not allowed\r\n");
             return;
         }
+        app_commands_respond_ok_with_count(output, 2U);
         app_commands_printf_to(output, "DEBUG OK\r\n");
         app_commands_printf_to(output, "source=%d\r\n", (int)ctx->source);
     }
