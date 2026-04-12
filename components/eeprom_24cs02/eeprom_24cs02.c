@@ -246,6 +246,51 @@ static bool eeprom_24cs02_parse_u8(const char *text, uint8_t *out_value)
     return true;
 }
 
+static void eeprom_24cs02_print_hex_line(app_command_output_fn output,
+                                         uint8_t mem_addr,
+                                         const uint8_t *data,
+                                         size_t len)
+{
+    char line[EEPROM_24CS02_CMD_BUF_SIZE];
+    size_t i;
+    int used;
+
+    if (output == NULL || data == NULL || len == 0U)
+    {
+        return;
+    }
+
+    used = snprintf(line, sizeof(line), "0x%02X:", mem_addr);
+    if (used < 0)
+    {
+        return;
+    }
+
+    for (i = 0; i < len; i++)
+    {
+        if ((size_t)used >= sizeof(line))
+        {
+            return;
+        }
+
+        used += snprintf(&line[used],
+                         sizeof(line) - (size_t)used,
+                         " %02X",
+                         data[i]);
+        if (used < 0)
+        {
+            return;
+        }
+
+        if ((size_t)used >= sizeof(line))
+        {
+            return;
+        }
+    }
+
+    eeprom_24cs02_printf(output, "%s\r\n", line);
+}
+
 static bool eeprom_24cs02_is_supported_command(const char *cmd)
 {
     return (strcmp(cmd, EEPROM_24CS02_CMD_HELP) == 0) ||
@@ -300,16 +345,11 @@ static bool eeprom_24cs02_handle_read16(const app_command_ctx_t *cmd_ctx,
         return true;
     }
 
-    eeprom_24cs02_printf(
-        cmd_ctx->output,
-        "0x%02X: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X\r\n",
-        mem_addr,
-        data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7],
-        data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15]);
+    eeprom_24cs02_print_hex_line(cmd_ctx->output, mem_addr, data, sizeof(data));
     return true;
 }
 
-static int eeprom_24cs02_hex_nibble_value(char c)
+static int eeprom_24cs02_char_to_nibble(char c)
 {
     if (c >= '0' && c <= '9')
     {
@@ -354,7 +394,7 @@ static bool eeprom_24cs02_parse_hex_bytes(const char *text,
             continue;
         }
 
-        nibble = eeprom_24cs02_hex_nibble_value((char)ch);
+        nibble = eeprom_24cs02_char_to_nibble((char)ch);
         if (nibble < 0)
         {
             return false;
@@ -419,14 +459,10 @@ static bool eeprom_24cs02_handle_dump(const app_command_ctx_t *cmd_ctx,
 
     for (offset = 0; offset < EEPROM_24CS02_MEM_SIZE_BYTES; offset += EEPROM_24CS02_READ16_BYTES)
     {
-        eeprom_24cs02_printf(
-            cmd_ctx->output,
-            "0x%02X: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X\r\n",
-            (unsigned int)offset,
-            data[offset + 0U], data[offset + 1U], data[offset + 2U], data[offset + 3U],
-            data[offset + 4U], data[offset + 5U], data[offset + 6U], data[offset + 7U],
-            data[offset + 8U], data[offset + 9U], data[offset + 10U], data[offset + 11U],
-            data[offset + 12U], data[offset + 13U], data[offset + 14U], data[offset + 15U]);
+        eeprom_24cs02_print_hex_line(cmd_ctx->output,
+                                     (uint8_t)offset,
+                                     &data[offset],
+                                     EEPROM_24CS02_READ16_BYTES);
     }
 
     return true;
