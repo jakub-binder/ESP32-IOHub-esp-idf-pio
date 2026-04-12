@@ -24,6 +24,7 @@ typedef struct
     int i2c_port;
     uint8_t data_dev_addr;
     uint8_t serial_dev_addr;
+    /* Legacy fallback for data_dev_addr (deprecated). */
     uint8_t dev_addr;
 } eeprom_24cs02_cfg_t;
 

@@ -380,7 +380,12 @@ static bool eeprom_24cs02_parse_hex_bytes(const char *text,
         cursor++;
     }
 
-    if (high_nibble >= 0 || idx == 0U)
+    if (high_nibble >= 0)
+    {
+        return false;
+    }
+
+    if (idx == 0U)
     {
         return false;
     }
@@ -472,6 +477,7 @@ static bool eeprom_24cs02_handle_read_sn(const app_command_ctx_t *cmd_ctx,
                                          eeprom_24cs02_t *ctx,
                                          char *args)
 {
+    static const char hex_chars[] = "0123456789ABCDEF";
     char *saveptr = NULL;
     char *extra = strtok_r(args, " \t", &saveptr);
     uint8_t serial[EEPROM_24CS02_SERIAL_SIZE_BYTES];
@@ -503,7 +509,8 @@ static bool eeprom_24cs02_handle_read_sn(const app_command_ctx_t *cmd_ctx,
 
     for (i = 0; i < sizeof(serial); i++)
     {
-        (void)snprintf(&serial_text[i * 2U], 3U, "%02X", serial[i]);
+        serial_text[i * 2U] = hex_chars[(serial[i] >> 4U) & 0x0FU];
+        serial_text[(i * 2U) + 1U] = hex_chars[serial[i] & 0x0FU];
     }
     serial_text[sizeof(serial_text) - 1U] = '\0';
     eeprom_24cs02_printf(cmd_ctx->output, "%s\r\n", serial_text);
