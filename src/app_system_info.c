@@ -7,11 +7,13 @@
 #include "board/board_pins.h"
 #include "fixtures/fixture.h"
 
+#define APP_SYSTEM_INFO_BASE_LINE_COUNT 8U
+
 void app_system_info_print(app_command_output_fn output)
 {
     char line[128];
     const fixture_t *fixture;
-    size_t data_line_count = 8U;
+    size_t data_line_count = APP_SYSTEM_INFO_BASE_LINE_COUNT;
 
     if (output == NULL)
     {
