@@ -31,6 +31,10 @@ esp_err_t eeprom_24cs02_read(eeprom_24cs02_t *ctx,
                              void *out,
                              size_t len);
 
+/* Write constraints:
+ * - mem_addr must be aligned to 8-byte EEPROM page size
+ * - len must be a non-zero multiple of 8
+ */
 esp_err_t eeprom_24cs02_write(eeprom_24cs02_t *ctx,
                               uint8_t mem_addr,
                               const void *data,

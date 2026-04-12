@@ -173,6 +173,12 @@ static bool eeprom_24cs02_parse_u8(const char *text, uint8_t *out_value)
     return true;
 }
 
+static bool eeprom_24cs02_is_supported_command(const char *cmd)
+{
+    return (strcmp(cmd, "eeprom.help") == 0) ||
+           (strcmp(cmd, "eeprom.read16") == 0);
+}
+
 static bool eeprom_24cs02_handle_help(const app_command_ctx_t *cmd_ctx)
 {
     eeprom_24cs02_printf(cmd_ctx->output, "eeprom.help\r\n");
@@ -225,8 +231,7 @@ static bool eeprom_24cs02_command_handler(const app_command_ctx_t *cmd_ctx,
         return false;
     }
 
-    if (strcmp(cmd, "eeprom.help") != 0 &&
-        strcmp(cmd, "eeprom.read16") != 0)
+    if (!eeprom_24cs02_is_supported_command(cmd))
     {
         return false;
     }
