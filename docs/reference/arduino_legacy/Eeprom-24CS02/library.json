@@ -1,0 +1,8 @@
+{
+  "name": "Eeprom-24CS02",
+  "version": "0.1.0",
+  "description": "I2C EEPROM command library for 24CS02-compatible devices.",
+  "keywords": ["eeprom", "i2c", "24cs02"],
+  "frameworks": ["arduino"],
+  "platforms": ["espressif32"]
+}
