@@ -52,7 +52,8 @@ static void fixture_default_setup_impl(void)
     };
     const eeprom_24cs02_cfg_t eeprom_cfg = {
         .i2c_port = FIXTURE_DEFAULT_I2C_PORT,
-        .dev_addr = 0x56,
+        .data_dev_addr = 0x56,
+        .serial_dev_addr = 0x5E,
     };
     esp_err_t err;
 

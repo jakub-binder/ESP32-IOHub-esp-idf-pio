@@ -14,13 +14,16 @@ extern "C" {
 typedef struct
 {
     int i2c_port;
-    uint8_t dev_addr;
+    uint8_t data_dev_addr;
+    uint8_t serial_dev_addr;
     bool initialized;
 } eeprom_24cs02_t;
 
 typedef struct
 {
     int i2c_port;
+    uint8_t data_dev_addr;
+    uint8_t serial_dev_addr;
     uint8_t dev_addr;
 } eeprom_24cs02_cfg_t;
 
