@@ -70,7 +70,7 @@ static void fixture_default_setup_impl(void)
     if (i2c_ready)
     {
         const eeprom_24cs02_cfg_t eeprom_cfg = {
-            .i2c_port = (int)i2c_bus_port(&g_i2c_bus),
+            .i2c_port = i2c_bus_port(&g_i2c_bus),
             .data_dev_addr = 0x56,
             .serial_dev_addr = 0x5E,
         };

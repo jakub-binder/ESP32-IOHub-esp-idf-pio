@@ -3,6 +3,7 @@
 #include "esp_log.h"
 
 static const char *const I2C_BUS_TAG = "i2c_bus";
+static const uint32_t I2C_BUS_MIN_FREQUENCY_HZ = 1U;
 
 static bool i2c_bus_port_is_valid(i2c_port_t port)
 {
@@ -42,7 +43,7 @@ esp_err_t i2c_bus_init(i2c_bus_t *bus, const i2c_bus_config_t *cfg)
     if (!i2c_bus_port_is_valid(cfg->port) ||
         !i2c_bus_gpio_is_valid(cfg->sda_pin) ||
         !i2c_bus_gpio_is_valid(cfg->scl_pin) ||
-        (cfg->frequency_hz == 0U))
+        (cfg->frequency_hz < I2C_BUS_MIN_FREQUENCY_HZ))
     {
         return ESP_ERR_INVALID_ARG;
     }
