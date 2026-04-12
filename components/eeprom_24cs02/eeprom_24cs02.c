@@ -285,7 +285,7 @@ static bool eeprom_24cs02_command_handler(const app_command_ctx_t *cmd_ctx,
 
 void eeprom_24cs02_register_commands(eeprom_24cs02_t *ctx)
 {
-    const bool registered;
+    bool registered;
 
     if (!eeprom_24cs02_is_ready(ctx))
     {
