@@ -2,6 +2,7 @@
 #define APP_COMMANDS_H
 
 #include <stdbool.h>
+#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -61,6 +62,10 @@ void app_commands_handle_line(const char *line);
 
 bool app_commands_register_custom_handler(app_command_custom_handler_fn handler,
                                           void *user_ctx);
+
+void app_commands_respond_ok(app_command_output_fn output);
+void app_commands_respond_ok_with_count(app_command_output_fn output,
+                                        size_t data_line_count);
 
 #ifdef __cplusplus
 }

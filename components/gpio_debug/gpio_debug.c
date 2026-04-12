@@ -240,6 +240,7 @@ static bool gpio_debug_handle_get(const app_command_ctx_t *ctx,
         return true;
     }
 
+    app_commands_respond_ok_with_count(ctx->output, 1U);
     gpio_debug_printf(ctx->output, "GPIO %d = %d\r\n", pin, level);
     return true;
 }
@@ -287,7 +288,7 @@ static bool gpio_debug_handle_in(const app_command_ctx_t *ctx,
         return true;
     }
 
-    gpio_debug_printf(ctx->output, "OK\r\n");
+    app_commands_respond_ok(ctx->output);
     return true;
 }
 
@@ -332,12 +333,13 @@ static bool gpio_debug_handle_out(const app_command_ctx_t *ctx,
         return true;
     }
 
-    gpio_debug_printf(ctx->output, "OK\r\n");
+    app_commands_respond_ok(ctx->output);
     return true;
 }
 
 static bool gpio_debug_handle_help(const app_command_ctx_t *ctx)
 {
+    app_commands_respond_ok_with_count(ctx->output, 4U);
     gpio_debug_printf(ctx->output, "gpio.help\r\n");
     gpio_debug_printf(ctx->output, "gpio.get <pin>\r\n");
     gpio_debug_printf(ctx->output, "gpio.in <pin> <none|up|down>\r\n");

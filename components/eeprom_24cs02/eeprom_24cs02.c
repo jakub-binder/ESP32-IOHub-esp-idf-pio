@@ -23,6 +23,7 @@
 #define EEPROM_24CS02_CMD_BUF_SIZE        128U
 #define EEPROM_24CS02_WRITE_CYCLE_DELAY_MS 5U
 #define EEPROM_24CS02_I2C_TIMEOUT_MS      100U
+#define EEPROM_24CS02_DUMP_LINE_COUNT     (EEPROM_24CS02_MEM_SIZE_BYTES / EEPROM_24CS02_READ16_BYTES)
 
 static const char *const EEPROM_24CS02_CMD_HELP = "eeprom.help";
 static const char *const EEPROM_24CS02_CMD_READ16 = "eeprom.read16";
@@ -302,6 +303,7 @@ static bool eeprom_24cs02_is_supported_command(const char *cmd)
 
 static bool eeprom_24cs02_handle_help(const app_command_ctx_t *cmd_ctx)
 {
+    app_commands_respond_ok_with_count(cmd_ctx->output, 5U);
     eeprom_24cs02_printf(cmd_ctx->output, "eeprom.help\r\n");
     eeprom_24cs02_printf(cmd_ctx->output, "eeprom.read16 <mem_addr>\r\n");
     eeprom_24cs02_printf(cmd_ctx->output, "eeprom.dump\r\n");
@@ -345,6 +347,7 @@ static bool eeprom_24cs02_handle_read16(const app_command_ctx_t *cmd_ctx,
         return true;
     }
 
+    app_commands_respond_ok_with_count(cmd_ctx->output, 1U);
     eeprom_24cs02_print_hex_line(cmd_ctx->output, mem_addr, data, sizeof(data));
     return true;
 }
@@ -457,6 +460,7 @@ static bool eeprom_24cs02_handle_dump(const app_command_ctx_t *cmd_ctx,
         return true;
     }
 
+    app_commands_respond_ok_with_count(cmd_ctx->output, EEPROM_24CS02_DUMP_LINE_COUNT);
     for (offset = 0; offset < EEPROM_24CS02_MEM_SIZE_BYTES; offset += EEPROM_24CS02_READ16_BYTES)
     {
         eeprom_24cs02_print_hex_line(cmd_ctx->output,
@@ -505,7 +509,7 @@ static bool eeprom_24cs02_handle_write(const app_command_ctx_t *cmd_ctx,
         return true;
     }
 
-    eeprom_24cs02_printf(cmd_ctx->output, "OK\r\n");
+    app_commands_respond_ok(cmd_ctx->output);
     return true;
 }
 
@@ -543,6 +547,7 @@ static bool eeprom_24cs02_handle_read_sn(const app_command_ctx_t *cmd_ctx,
         return true;
     }
 
+    app_commands_respond_ok_with_count(cmd_ctx->output, 1U);
     for (i = 0; i < sizeof(serial); i++)
     {
         serial_text[i * 2U] = hex_chars[(serial[i] >> 4U) & 0x0FU];

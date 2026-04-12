@@ -9,6 +9,7 @@ extern "C" {
 
 /**
  * Print system information in KEY=VALUE format.
+ * The response starts with protocol header OK-N and then N data lines.
  * Each key/value pair is written as a separate line via the output callback.
  *
  * @param output  Command output callback; no-op when NULL.
