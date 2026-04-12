@@ -2,6 +2,7 @@
 
 #include "app_commands.h"
 #include "driver/i2c.h"
+#include "esp_log.h"
 
 #include <errno.h>
 #include <limits.h>
@@ -22,6 +23,7 @@
 
 static const char *const EEPROM_24CS02_CMD_HELP = "eeprom.help";
 static const char *const EEPROM_24CS02_CMD_READ16 = "eeprom.read16";
+static const char *const EEPROM_24CS02_TAG = "eeprom_24cs02";
 
 static bool eeprom_24cs02_is_ready(const eeprom_24cs02_t *ctx)
 {
@@ -53,6 +55,16 @@ static bool eeprom_24cs02_range_is_valid(uint8_t mem_addr, size_t len)
 esp_err_t eeprom_24cs02_init(eeprom_24cs02_t *ctx, const eeprom_24cs02_cfg_t *cfg)
 {
     if (ctx == NULL || cfg == NULL)
+    {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    if (cfg->i2c_port < 0 || cfg->i2c_port >= I2C_NUM_MAX)
+    {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    if ((cfg->dev_addr & 0x80U) != 0U)
     {
         return ESP_ERR_INVALID_ARG;
     }
@@ -263,15 +275,26 @@ static bool eeprom_24cs02_command_handler(const app_command_ctx_t *cmd_ctx,
         return eeprom_24cs02_handle_help(cmd_ctx);
     }
 
-    return eeprom_24cs02_handle_read16(cmd_ctx, ctx, args);
+    if (strcmp(cmd, EEPROM_24CS02_CMD_READ16) == 0)
+    {
+        return eeprom_24cs02_handle_read16(cmd_ctx, ctx, args);
+    }
+
+    return false;
 }
 
 void eeprom_24cs02_register_commands(eeprom_24cs02_t *ctx)
 {
+    const bool registered;
+
     if (!eeprom_24cs02_is_ready(ctx))
     {
         return;
     }
 
-    (void)app_commands_register_custom_handler(eeprom_24cs02_command_handler, ctx);
+    registered = app_commands_register_custom_handler(eeprom_24cs02_command_handler, ctx);
+    if (!registered)
+    {
+        ESP_LOGE(EEPROM_24CS02_TAG, "app_commands_register_custom_handler failed");
+    }
 }
