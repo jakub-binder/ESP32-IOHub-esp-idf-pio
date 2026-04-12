@@ -1,0 +1,10 @@
+idf_component_register(
+    SRCS
+        "eeprom_24cs02.c"
+    INCLUDE_DIRS
+        "include"
+    PRIV_INCLUDE_DIRS
+        "../../include"
+    REQUIRES
+        driver
+)

@@ -5,10 +5,12 @@
 #include "app_config.h"
 #include "app_log.h"
 #include "board/board_pins.h"
+#include "eeprom_24cs02.h"
 #include "gpio_debug.h"
 
 static int64_t g_last_log_time_us = 0;
 static gpio_debug_t g_gpio_debug;
+static eeprom_24cs02_t g_eeprom_24cs02;
 
 static void fixture_default_setup_impl(void);
 static void fixture_default_loop_impl(void);
@@ -34,6 +36,10 @@ static void fixture_default_setup_impl(void)
                 gpio_debug_pin_to_mask(BOARD_UART1_RX_PIN),
         },
     };
+    const eeprom_24cs02_cfg_t eeprom_cfg = {
+        .i2c_port = 0,
+        .dev_addr = 0x56,
+    };
     esp_err_t err;
 
     APP_LOGI(APP_FIXTURE_LOG_TAG, "fixture_default_setup()");
@@ -43,6 +49,12 @@ static void fixture_default_setup_impl(void)
     if (err != ESP_OK)
     {
         APP_LOGE(APP_FIXTURE_LOG_TAG, "gpio_debug_init failed: %d", (int)err);
+    }
+
+    err = eeprom_24cs02_init(&g_eeprom_24cs02, &eeprom_cfg);
+    if (err != ESP_OK)
+    {
+        APP_LOGE(APP_FIXTURE_LOG_TAG, "eeprom_24cs02_init failed: %d", (int)err);
     }
 }
 
@@ -65,4 +77,6 @@ static void fixture_default_register_commands_impl(void)
     {
         APP_LOGE(APP_FIXTURE_LOG_TAG, "gpio_debug_register_commands failed: %d", (int)err);
     }
+
+    eeprom_24cs02_register_commands(&g_eeprom_24cs02);
 }
