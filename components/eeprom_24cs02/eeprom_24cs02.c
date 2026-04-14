@@ -301,6 +301,12 @@ static bool eeprom_24cs02_is_supported_command(const char *cmd)
            (strcmp(cmd, EEPROM_24CS02_CMD_READ_SN) == 0);
 }
 
+static bool eeprom_24cs02_command_is_debug_only(const char *cmd)
+{
+    (void)cmd;
+    return false;
+}
+
 static bool eeprom_24cs02_handle_help(const app_command_ctx_t *cmd_ctx)
 {
     app_commands_respond_ok_with_count(cmd_ctx->output, 5U);
@@ -575,7 +581,7 @@ static bool eeprom_24cs02_command_handler(const app_command_ctx_t *cmd_ctx,
         return false;
     }
 
-    if (!cmd_ctx->allow_debug_commands)
+    if (eeprom_24cs02_command_is_debug_only(cmd) && !cmd_ctx->allow_debug_commands)
     {
         eeprom_24cs02_printf(cmd_ctx->output, "ERR not allowed\r\n");
         return true;

@@ -347,6 +347,12 @@ static bool gpio_debug_handle_help(const app_command_ctx_t *ctx)
     return true;
 }
 
+static bool gpio_debug_command_is_debug_only(const char *cmd)
+{
+    (void)cmd;
+    return false;
+}
+
 static bool gpio_debug_command_handler(const app_command_ctx_t *ctx,
                                        const char *cmd,
                                        char *args,
@@ -367,7 +373,7 @@ static bool gpio_debug_command_handler(const app_command_ctx_t *ctx,
         return false;
     }
 
-    if (!ctx->allow_debug_commands)
+    if (gpio_debug_command_is_debug_only(cmd) && !ctx->allow_debug_commands)
     {
         gpio_debug_printf(ctx->output, "ERR not allowed\r\n");
         return true;
