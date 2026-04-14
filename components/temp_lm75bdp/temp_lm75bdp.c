@@ -22,7 +22,7 @@
 #define TEMP_LM75BDP_CMD_BUF_SIZE     128U
 #define TEMP_LM75BDP_TEMP_MIN_C       (-55.0f)
 #define TEMP_LM75BDP_TEMP_MAX_C       (125.0f)
-#define TEMP_LM75BDP_THRESHOLD_STEP_C (0.5f)
+#define TEMP_LM75BDP_STEPS_PER_C      (2.0f)
 
 static const char *const TEMP_LM75BDP_CMD_HELP = "temp.help";
 static const char *const TEMP_LM75BDP_CMD_READ = "temp.read";
@@ -159,7 +159,7 @@ static esp_err_t temp_lm75bdp_encode_threshold_c(float temp_c, uint16_t *out_reg
         return ESP_ERR_INVALID_ARG;
     }
 
-    raw = (int16_t)roundf(temp_c / TEMP_LM75BDP_THRESHOLD_STEP_C);
+    raw = (int16_t)roundf(temp_c * TEMP_LM75BDP_STEPS_PER_C);
     *out_reg_value = (uint16_t)(raw << 7);
     return ESP_OK;
 }
@@ -414,7 +414,7 @@ static bool temp_lm75bdp_handle_set_thresholds(const app_command_ctx_t *cmd_ctx,
         if (err == ESP_ERR_INVALID_ARG)
         {
             temp_lm75bdp_printf(cmd_ctx->output,
-                                "ERR invalid thresholds (thyst < tos; range -55..125 C)\r\n");
+                                "ERR invalid thresholds (thyst < tos; range -55.0..125.0 C)\r\n");
             return true;
         }
         temp_lm75bdp_printf(cmd_ctx->output, "ERR %d\r\n", (int)err);
