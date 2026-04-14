@@ -200,8 +200,11 @@ esp_err_t temp_lm75bdp_init(temp_lm75bdp_t *ctx,
         ctx->initialized = false;
         return err;
     }
-    (void)conf;
-    (void)discard_temp;
+
+    ESP_LOGD(TEMP_LM75BDP_TAG,
+             "init probe ok (conf=0x%02X, first_temp_raw=0x%04X)",
+             conf,
+             discard_temp);
 
     return ESP_OK;
 }
