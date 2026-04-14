@@ -1,0 +1,8 @@
+{
+  "name": "Temp-LM75BDP",
+  "version": "0.1.0",
+  "description": "LM75BDP temperature sensor command library over I2C.",
+  "keywords": ["temperature", "lm75", "i2c"],
+  "frameworks": ["arduino"],
+  "platforms": ["espressif32"]
+}

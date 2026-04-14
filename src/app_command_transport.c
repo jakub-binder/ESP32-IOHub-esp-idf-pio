@@ -260,7 +260,7 @@ void app_command_transport_init(void)
         const app_command_ctx_t ctx = {
             .source               = APP_CMD_SOURCE_UART1,
             .output               = transport_write_uart1,
-            .allow_debug_commands = true,
+            .allow_debug_commands = false,
         };
         app_command_endpoint_init_ex(&s_ep_prod, ctx);
     }
