@@ -12,14 +12,19 @@ extern "C" {
 
 typedef struct
 {
+    /* I2C port selected by fixture via i2c_bus_port(...). */
     int i2c_port;
+    /* 7-bit I2C device address. */
     uint8_t dev_addr;
+    /* Internal state set by temp_lm75bdp_init(). */
     bool initialized;
 } temp_lm75bdp_t;
 
 typedef struct
 {
+    /* Valid range: 0..(I2C_NUM_MAX - 1). */
     int i2c_port;
+    /* LM75BDP 7-bit I2C address (default 0x48). */
     uint8_t dev_addr;
 } temp_lm75bdp_cfg_t;
 

@@ -97,6 +97,10 @@ static esp_err_t temp_lm75bdp_write_register16(temp_lm75bdp_t *ctx,
 
 static uint16_t temp_lm75bdp_encode_threshold_c(float temp_c)
 {
+    /* First iteration encoding:
+     * - threshold registers use 0.5 C step => temp * 2
+     * - signed value is stored in upper bits (D8..D0 -> bits 15..7)
+     */
     const float steps = temp_c * 2.0f;
     const int16_t raw = (int16_t)roundf(steps);
 
@@ -152,6 +156,11 @@ esp_err_t temp_lm75bdp_read_temperature_c(temp_lm75bdp_t *ctx,
     }
 
     signed_raw = (int16_t)raw16;
+    /* LM75BDP TEMP register (first iteration):
+     * - signed value in upper 11 bits (two's complement)
+     * - arithmetic shift by 5 keeps sign and aligns to LSB
+     * - each LSB is 0.125 C
+     */
     signed_raw >>= 5;
     *out_temp_c = (float)signed_raw * 0.125f;
 
@@ -221,7 +230,7 @@ static bool temp_lm75bdp_parse_float(const char *text, float *out_value)
 
     errno = 0;
     *out_value = strtof(text, &endptr);
-    if (*endptr != '\0' || errno == ERANGE || !isfinite(*out_value))
+    if (*endptr != '\0' || errno == ERANGE || errno == EINVAL || !isfinite(*out_value))
     {
         return false;
     }
