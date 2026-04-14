@@ -1,6 +1,6 @@
 # temp_lm75bdp
 
-Komponenta `temp_lm75bdp` poskytuje základní práci s teplotním čidlem LM75BDP přes I2C.
+Komponenta `temp_lm75bdp` poskytuje práci s teplotním čidlem LM75BDP přes I2C.
 Obsahuje i vlastní CLI parser uvnitř komponenty.
 
 ## Veřejné API
@@ -17,7 +17,7 @@ Obsahuje i vlastní CLI parser uvnitř komponenty.
 - `i2c_port` – číslo I2C portu
 - `dev_addr` – 7bit I2C adresa zařízení
 
-Default adresa LM75BDP v této iteraci je `0x48`.
+Default adresa LM75BDP je `0x48`.
 
 Poznámka:
 - Komponenta neinicializuje I2C bus, používá už připravenou sběrnici.
@@ -28,6 +28,14 @@ Poznámka:
 - `temp.read`
 - `temp.set_thresholds <thyst_c> <tos_c>`
 
+## Druhá iterace (datasheet-driven)
+
+- Init ověřuje dostupnost čidla čtením `CONF` registru.
+- Při initu je provedeno jedno zahazovací čtení `TEMP` registru (první čtení po selectu pointeru může být neplatné).
+- `TEMP` registr je dekódován jako 11bit two's complement s rozlišením `0.125 °C`.
+- `Tos`/`Thyst` jsou enkódovány v krocích `0.5 °C` do bitů `D8..D0` (`[15:7]`).
+- `temp.set_thresholds` validuje datasheet rozsah `-55 .. 125 °C` a pravidlo `thyst < tos`.
+
 ## Stručná integrace do fixture
 
 1. V `fixture_setup()` inicializovat I2C bus přes `i2c_bus`.
@@ -35,8 +43,6 @@ Poznámka:
 3. Zavolat `temp_lm75bdp_init(...)`.
 4. Ve `fixture_register_commands()` zavolat `temp_lm75bdp_register_commands(...)`.
 
-## Omezení první iterace
+## Omezení
 
-- Převod teploty i threshold encoding jsou best-effort podle legacy reference.
-- Neobsahuje plné pokrytí `CONF` registru.
-- Datasheet-driven zpřesnění převodů je plánované v další iteraci.
+- Komponenta zatím neposkytuje veřejné API pro detailní práci s jednotlivými bity `CONF` registru.

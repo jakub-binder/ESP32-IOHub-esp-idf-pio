@@ -20,6 +20,9 @@
 #define TEMP_LM75BDP_REG_TOS          0x03U
 #define TEMP_LM75BDP_I2C_TIMEOUT_MS   100U
 #define TEMP_LM75BDP_CMD_BUF_SIZE     128U
+#define TEMP_LM75BDP_TEMP_MIN_C       (-55.0f)
+#define TEMP_LM75BDP_TEMP_MAX_C       (125.0f)
+#define TEMP_LM75BDP_STEPS_PER_C      (2.0f)
 
 static const char *const TEMP_LM75BDP_CMD_HELP = "temp.help";
 static const char *const TEMP_LM75BDP_CMD_READ = "temp.read";
@@ -34,6 +37,48 @@ static bool temp_lm75bdp_is_ready(const temp_lm75bdp_t *ctx)
 static bool temp_lm75bdp_dev_addr_is_valid(uint8_t dev_addr)
 {
     return (dev_addr != 0U) && ((dev_addr & 0x80U) == 0U);
+}
+
+static bool temp_lm75bdp_threshold_in_range(float temp_c)
+{
+    return isfinite(temp_c) &&
+           (temp_c >= TEMP_LM75BDP_TEMP_MIN_C) &&
+           (temp_c <= TEMP_LM75BDP_TEMP_MAX_C);
+}
+
+static esp_err_t temp_lm75bdp_read_register8(temp_lm75bdp_t *ctx,
+                                             uint8_t reg_addr,
+                                             uint8_t *out_value)
+{
+    uint8_t reg = reg_addr;
+    uint8_t value = 0U;
+    esp_err_t err;
+
+    if (out_value == NULL)
+    {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    if (!temp_lm75bdp_is_ready(ctx))
+    {
+        return ESP_ERR_INVALID_STATE;
+    }
+
+    err = i2c_master_write_read_device((i2c_port_t)ctx->i2c_port,
+                                       ctx->dev_addr,
+                                       &reg,
+                                       sizeof(reg),
+                                       &value,
+                                       sizeof(value),
+                                       pdMS_TO_TICKS(TEMP_LM75BDP_I2C_TIMEOUT_MS));
+    if (err != ESP_OK)
+    {
+        ESP_LOGE(TEMP_LM75BDP_TAG, "read reg 0x%02X failed: %d", reg_addr, (int)err);
+        return err;
+    }
+
+    *out_value = value;
+    return ESP_OK;
 }
 
 static esp_err_t temp_lm75bdp_read_register16(temp_lm75bdp_t *ctx,
@@ -95,21 +140,37 @@ static esp_err_t temp_lm75bdp_write_register16(temp_lm75bdp_t *ctx,
     return err;
 }
 
-static uint16_t temp_lm75bdp_encode_threshold_c(float temp_c)
+static esp_err_t temp_lm75bdp_encode_threshold_c(float temp_c, uint16_t *out_reg_value)
 {
-    /* First iteration encoding:
-     * - threshold registers use 0.5 C step => temp * 2
-     * - signed value is stored in upper bits (D8..D0 -> bits 15..7)
-     */
-    const float steps = temp_c * 2.0f;
-    const int16_t raw = (int16_t)roundf(steps);
+    int16_t raw;
 
-    return (uint16_t)(raw << 7);
+    if (out_reg_value == NULL)
+    {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    /* LM75B datasheet (Tos/Thyst):
+     * - valid range is -55.0 .. +125.0 C
+     * - register resolution is 0.5 C / LSB
+     * - signed D8..D0 are stored in bits 15..7
+     */
+    if (!temp_lm75bdp_threshold_in_range(temp_c))
+    {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    raw = (int16_t)roundf(temp_c * TEMP_LM75BDP_STEPS_PER_C);
+    *out_reg_value = (uint16_t)(raw << 7);
+    return ESP_OK;
 }
 
 esp_err_t temp_lm75bdp_init(temp_lm75bdp_t *ctx,
                             const temp_lm75bdp_cfg_t *cfg)
 {
+    uint8_t conf = 0U;
+    uint16_t discard_temp = 0U;
+    esp_err_t err;
+
     if (ctx == NULL || cfg == NULL)
     {
         return ESP_ERR_INVALID_ARG;
@@ -128,6 +189,27 @@ esp_err_t temp_lm75bdp_init(temp_lm75bdp_t *ctx,
     ctx->i2c_port = cfg->i2c_port;
     ctx->dev_addr = cfg->dev_addr;
     ctx->initialized = true;
+
+    /* Probe CONF register to verify that device responds at selected address. */
+    err = temp_lm75bdp_read_register8(ctx, TEMP_LM75BDP_REG_CONF, &conf);
+    if (err != ESP_OK)
+    {
+        ctx->initialized = false;
+        return err;
+    }
+
+    /* LM75B datasheet: first Temp reading after Temp pointer select can be invalid. */
+    err = temp_lm75bdp_read_register16(ctx, TEMP_LM75BDP_REG_TEMP, &discard_temp);
+    if (err != ESP_OK)
+    {
+        ctx->initialized = false;
+        return err;
+    }
+
+    ESP_LOGD(TEMP_LM75BDP_TAG,
+             "init probe ok (conf=0x%02X, first_temp_raw=0x%04X)",
+             conf,
+             discard_temp);
 
     return ESP_OK;
 }
@@ -171,6 +253,8 @@ esp_err_t temp_lm75bdp_set_thresholds_c(temp_lm75bdp_t *ctx,
                                         float thyst_c,
                                         float tos_c)
 {
+    uint16_t thyst_reg = 0U;
+    uint16_t tos_reg = 0U;
     esp_err_t err;
 
     if (!temp_lm75bdp_is_ready(ctx))
@@ -183,9 +267,21 @@ esp_err_t temp_lm75bdp_set_thresholds_c(temp_lm75bdp_t *ctx,
         return ESP_ERR_INVALID_ARG;
     }
 
+    err = temp_lm75bdp_encode_threshold_c(thyst_c, &thyst_reg);
+    if (err != ESP_OK)
+    {
+        return err;
+    }
+
+    err = temp_lm75bdp_encode_threshold_c(tos_c, &tos_reg);
+    if (err != ESP_OK)
+    {
+        return err;
+    }
+
     err = temp_lm75bdp_write_register16(ctx,
                                         TEMP_LM75BDP_REG_THYST,
-                                        temp_lm75bdp_encode_threshold_c(thyst_c));
+                                        thyst_reg);
     if (err != ESP_OK)
     {
         return err;
@@ -193,7 +289,7 @@ esp_err_t temp_lm75bdp_set_thresholds_c(temp_lm75bdp_t *ctx,
 
     err = temp_lm75bdp_write_register16(ctx,
                                         TEMP_LM75BDP_REG_TOS,
-                                        temp_lm75bdp_encode_threshold_c(tos_c));
+                                        tos_reg);
     if (err != ESP_OK)
     {
         return err;
@@ -317,7 +413,8 @@ static bool temp_lm75bdp_handle_set_thresholds(const app_command_ctx_t *cmd_ctx,
     {
         if (err == ESP_ERR_INVALID_ARG)
         {
-            temp_lm75bdp_printf(cmd_ctx->output, "ERR invalid thresholds (thyst < tos required)\r\n");
+            temp_lm75bdp_printf(cmd_ctx->output,
+                                "ERR invalid thresholds (thyst < tos; range -55.0..125.0 C)\r\n");
             return true;
         }
         temp_lm75bdp_printf(cmd_ctx->output, "ERR %d\r\n", (int)err);
