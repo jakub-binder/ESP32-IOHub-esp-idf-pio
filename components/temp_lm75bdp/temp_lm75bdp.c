@@ -178,7 +178,7 @@ esp_err_t temp_lm75bdp_set_thresholds_c(temp_lm75bdp_t *ctx,
         return ESP_ERR_INVALID_STATE;
     }
 
-    if (!(thyst_c < tos_c))
+    if (thyst_c >= tos_c)
     {
         return ESP_ERR_INVALID_ARG;
     }
@@ -230,7 +230,17 @@ static bool temp_lm75bdp_parse_float(const char *text, float *out_value)
 
     errno = 0;
     *out_value = strtof(text, &endptr);
-    if (*endptr != '\0' || errno == ERANGE || !isfinite(*out_value))
+    if (*endptr != '\0')
+    {
+        return false;
+    }
+
+    if (errno == ERANGE)
+    {
+        return false;
+    }
+
+    if (!isfinite(*out_value))
     {
         return false;
     }
