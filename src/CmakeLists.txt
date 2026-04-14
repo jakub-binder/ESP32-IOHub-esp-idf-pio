@@ -17,4 +17,5 @@ idf_component_register(
         gpio_debug
         eeprom_24cs02
         i2c_bus
+        temp_lm75bdp
 )
