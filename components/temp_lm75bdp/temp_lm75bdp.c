@@ -54,7 +54,12 @@ static esp_err_t temp_lm75bdp_read_register8(temp_lm75bdp_t *ctx,
     uint8_t value = 0U;
     esp_err_t err;
 
-    if (!temp_lm75bdp_is_ready(ctx) || out_value == NULL)
+    if (out_value == NULL)
+    {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    if (!temp_lm75bdp_is_ready(ctx))
     {
         return ESP_ERR_INVALID_STATE;
     }
@@ -154,7 +159,7 @@ static esp_err_t temp_lm75bdp_encode_threshold_c(float temp_c, uint16_t *out_reg
         return ESP_ERR_INVALID_ARG;
     }
 
-    raw = (int16_t)lroundf(temp_c / TEMP_LM75BDP_THRESHOLD_STEP_C);
+    raw = (int16_t)roundf(temp_c / TEMP_LM75BDP_THRESHOLD_STEP_C);
     *out_reg_value = (uint16_t)(raw << 7);
     return ESP_OK;
 }
