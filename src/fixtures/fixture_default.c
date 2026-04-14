@@ -8,11 +8,13 @@
 #include "eeprom_24cs02.h"
 #include "gpio_debug.h"
 #include "i2c_bus.h"
+#include "temp_lm75bdp.h"
 
 static int64_t g_last_log_time_us = 0;
 static gpio_debug_t g_gpio_debug;
 static i2c_bus_t g_i2c_bus;
 static eeprom_24cs02_t g_eeprom_24cs02;
+static temp_lm75bdp_t g_temp_lm75bdp;
 
 #define FIXTURE_DEFAULT_I2C_PORT          I2C_NUM_0
 #define FIXTURE_DEFAULT_I2C_FREQ_HZ       100000
@@ -74,15 +76,26 @@ static void fixture_default_setup_impl(void)
             .data_dev_addr = 0x56,
             .serial_dev_addr = 0x5E,
         };
+        const temp_lm75bdp_cfg_t temp_cfg = {
+            .i2c_port = i2c_bus_port(&g_i2c_bus),
+            .dev_addr = 0x48,
+        };
         err = eeprom_24cs02_init(&g_eeprom_24cs02, &eeprom_cfg);
         if (err != ESP_OK)
         {
             APP_LOGE(APP_FIXTURE_LOG_TAG, "eeprom_24cs02_init failed: %d", (int)err);
         }
+
+        err = temp_lm75bdp_init(&g_temp_lm75bdp, &temp_cfg);
+        if (err != ESP_OK)
+        {
+            APP_LOGE(APP_FIXTURE_LOG_TAG, "temp_lm75bdp_init failed: %d", (int)err);
+        }
     }
     else
     {
         APP_LOGW(APP_FIXTURE_LOG_TAG, "EEPROM init skipped: I2C bus not ready");
+        APP_LOGW(APP_FIXTURE_LOG_TAG, "LM75BDP init skipped: I2C bus not ready");
     }
 }
 
@@ -107,4 +120,5 @@ static void fixture_default_register_commands_impl(void)
     }
 
     eeprom_24cs02_register_commands(&g_eeprom_24cs02);
+    temp_lm75bdp_register_commands(&g_temp_lm75bdp);
 }
