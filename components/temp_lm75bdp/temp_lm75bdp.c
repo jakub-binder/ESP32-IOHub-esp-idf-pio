@@ -104,7 +104,7 @@ static uint16_t temp_lm75bdp_encode_threshold_c(float temp_c)
     const float steps = temp_c * 2.0f;
     const int16_t raw = (int16_t)roundf(steps);
 
-    return ((uint16_t)raw) << 7U;
+    return (uint16_t)(raw << 7);
 }
 
 esp_err_t temp_lm75bdp_init(temp_lm75bdp_t *ctx,
@@ -230,7 +230,7 @@ static bool temp_lm75bdp_parse_float(const char *text, float *out_value)
 
     errno = 0;
     *out_value = strtof(text, &endptr);
-    if (*endptr != '\0' || errno == ERANGE || errno == EINVAL || !isfinite(*out_value))
+    if (*endptr != '\0' || errno == ERANGE || !isfinite(*out_value))
     {
         return false;
     }
@@ -259,11 +259,11 @@ static bool temp_lm75bdp_handle_read(const app_command_ctx_t *cmd_ctx,
                                      char *args)
 {
     char *saveptr = NULL;
-    char *extra = strtok_r(args, " \t", &saveptr);
+    char *trailing_arg = strtok_r(args, " \t", &saveptr);
     float temp_c;
     esp_err_t err;
 
-    if (extra != NULL)
+    if (trailing_arg != NULL)
     {
         temp_lm75bdp_printf(cmd_ctx->output, "ERR usage: temp.read\r\n");
         return true;
@@ -288,12 +288,12 @@ static bool temp_lm75bdp_handle_set_thresholds(const app_command_ctx_t *cmd_ctx,
     char *saveptr = NULL;
     char *thyst_str = strtok_r(args, " \t", &saveptr);
     char *tos_str = strtok_r(NULL, " \t", &saveptr);
-    char *extra = strtok_r(NULL, " \t", &saveptr);
+    char *trailing_arg = strtok_r(NULL, " \t", &saveptr);
     float thyst_c;
     float tos_c;
     esp_err_t err;
 
-    if (extra != NULL ||
+    if (trailing_arg != NULL ||
         !temp_lm75bdp_parse_float(thyst_str, &thyst_c) ||
         !temp_lm75bdp_parse_float(tos_str, &tos_c))
     {
