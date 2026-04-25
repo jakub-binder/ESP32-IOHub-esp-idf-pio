@@ -5,7 +5,7 @@ idf_component_register(
         "fixtures/fixture.c"
         "fixtures/fixture_default.c"
         "fixtures/fixture_prod.c"
-        "fixtures/fixture_scanfield_safety.c"
+        "fixtures/fixture_scanfil_safety.c"
         "app_commands.c"
         "app_command_endpoint.c"
         "app_command_system.c"

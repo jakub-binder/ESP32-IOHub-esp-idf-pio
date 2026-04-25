@@ -1,4 +1,4 @@
-#include "fixtures/fixture_scanfield_safety.h"
+#include "fixtures/fixture_scanfil_safety.h"
 
 #include "esp_timer.h"
 
@@ -12,35 +12,35 @@ static int64_t g_last_log_time_us = 0;
 static i2c_bus_t g_i2c_bus;
 static eeprom_24c64_t g_eeprom_24c64;
 
-#define FIXTURE_SCANFIELD_SAFETY_I2C_PORT           I2C_NUM_0
-#define FIXTURE_SCANFIELD_SAFETY_I2C_FREQ_HZ        100000U
-#define FIXTURE_SCANFIELD_SAFETY_EEPROM_DEV_ADDR    0x53U
+#define FIXTURE_SCANFIL_SAFETY_I2C_PORT           I2C_NUM_0
+#define FIXTURE_SCANFIL_SAFETY_I2C_FREQ_HZ        100000U
+#define FIXTURE_SCANFIL_SAFETY_EEPROM_DEV_ADDR    0x53U
 
-static void fixture_scanfield_safety_setup_impl(void);
-static void fixture_scanfield_safety_loop_impl(void);
-static void fixture_scanfield_safety_register_commands_impl(void);
+static void fixture_scanfil_safety_setup_impl(void);
+static void fixture_scanfil_safety_loop_impl(void);
+static void fixture_scanfil_safety_register_commands_impl(void);
 
-const fixture_t fixture_scanfield_safety =
+const fixture_t fixture_scanfil_safety =
 {
-    .name = "FIXTURE_SCANFIELD_SAFETY",
-    .setup = fixture_scanfield_safety_setup_impl,
-    .loop = fixture_scanfield_safety_loop_impl,
-    .register_commands = fixture_scanfield_safety_register_commands_impl
+    .name = "FIXTURE_SCANFIL_SAFETY",
+    .setup = fixture_scanfil_safety_setup_impl,
+    .loop = fixture_scanfil_safety_loop_impl,
+    .register_commands = fixture_scanfil_safety_register_commands_impl
 };
 
-static void fixture_scanfield_safety_setup_impl(void)
+static void fixture_scanfil_safety_setup_impl(void)
 {
     bool i2c_ready = false;
     const i2c_bus_config_t i2c_bus_cfg = {
-        .port = FIXTURE_SCANFIELD_SAFETY_I2C_PORT,
+        .port = FIXTURE_SCANFIL_SAFETY_I2C_PORT,
         .sda_pin = BOARD_I2C1_SDA_PIN,
         .scl_pin = BOARD_I2C1_SCL_PIN,
-        .frequency_hz = FIXTURE_SCANFIELD_SAFETY_I2C_FREQ_HZ,
+        .frequency_hz = FIXTURE_SCANFIL_SAFETY_I2C_FREQ_HZ,
         .pullup_enable = true,
     };
     esp_err_t err;
 
-    APP_LOGI(APP_FIXTURE_LOG_TAG, "fixture_scanfield_safety_setup()");
+    APP_LOGI(APP_FIXTURE_LOG_TAG, "fixture_scanfil_safety_setup()");
     APP_LOGI(APP_FIXTURE_LOG_TAG, "Running on board: %s", BOARD_NAME);
 
     err = i2c_bus_init(&g_i2c_bus, &i2c_bus_cfg);
@@ -54,7 +54,7 @@ static void fixture_scanfield_safety_setup_impl(void)
     {
         const eeprom_24c64_cfg_t eeprom_cfg = {
             .i2c_port = i2c_bus_port(&g_i2c_bus),
-            .dev_addr = FIXTURE_SCANFIELD_SAFETY_EEPROM_DEV_ADDR,
+            .dev_addr = FIXTURE_SCANFIL_SAFETY_EEPROM_DEV_ADDR,
             .ack_poll_timeout_ms = 20U,
         };
 
@@ -70,7 +70,7 @@ static void fixture_scanfield_safety_setup_impl(void)
     }
 }
 
-static void fixture_scanfield_safety_loop_impl(void)
+static void fixture_scanfil_safety_loop_impl(void)
 {
     const int64_t now_us = esp_timer_get_time();
     const int64_t period_us = 1000000; /* 1 s */
@@ -78,11 +78,11 @@ static void fixture_scanfield_safety_loop_impl(void)
     if ((now_us - g_last_log_time_us) >= period_us)
     {
         g_last_log_time_us = now_us;
-        //APP_LOGI(APP_FIXTURE_LOG_TAG, "[SCANFIELD_SAFETY] heartbeat");
+        //APP_LOGI(APP_FIXTURE_LOG_TAG, "[SCANFIL_SAFETY] heartbeat");
     }
 }
 
-static void fixture_scanfield_safety_register_commands_impl(void)
+static void fixture_scanfil_safety_register_commands_impl(void)
 {
     eeprom_24c64_register_commands(&g_eeprom_24c64);
 }

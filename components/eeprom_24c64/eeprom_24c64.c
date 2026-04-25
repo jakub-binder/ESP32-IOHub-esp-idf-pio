@@ -260,7 +260,7 @@ static void eeprom_24c64_printf(app_command_output_fn output, const char *fmt, .
 static void eeprom_24c64_respond_error(app_command_output_fn output, const char *fmt, ...)
 {
     char detail[EEPROM_24C64_CMD_BUF_SIZE];
-    char line[EEPROM_24C64_CMD_BUF_SIZE];
+    const char *detail_text = NULL;
     va_list args;
 
     if (output == NULL)
@@ -268,13 +268,25 @@ static void eeprom_24c64_respond_error(app_command_output_fn output, const char 
         return;
     }
 
-    va_start(args, fmt);
-    vsnprintf(detail, sizeof(detail), fmt, args);
-    va_end(args);
+    if (fmt != NULL)
+    {
+        va_start(args, fmt);
+        vsnprintf(detail, sizeof(detail), fmt, args);
+        va_end(args);
+        detail_text = detail;
+    }
 
     output("ERR-1\r\n");
-    snprintf(line, sizeof(line), "Error: %s\r\n", detail);
-    output(line);
+    output("Error: ");
+    if (detail_text != NULL)
+    {
+        output(detail_text);
+    }
+    else
+    {
+        output("Unknown error");
+    }
+    output("\r\n");
 }
 
 static int eeprom_24c64_char_to_nibble(char c)
