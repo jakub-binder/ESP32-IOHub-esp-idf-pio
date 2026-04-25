@@ -5,6 +5,7 @@ idf_component_register(
         "fixtures/fixture.c"
         "fixtures/fixture_default.c"
         "fixtures/fixture_prod.c"
+        "fixtures/fixture_scanfield_safety.c"
         "app_commands.c"
         "app_command_endpoint.c"
         "app_command_system.c"
@@ -16,6 +17,7 @@ idf_component_register(
     REQUIRES
         gpio_debug
         eeprom_24cs02
+        eeprom_24c64
         i2c_bus
         temp_lm75bdp
 )

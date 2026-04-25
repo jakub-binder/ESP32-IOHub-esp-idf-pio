@@ -46,11 +46,11 @@ extern "C" {
  * Fixture validation
  * --------------------------- */
 
-#if defined(FIXTURE_DEFAULT) && defined(FIXTURE_PROD)
+#if (defined(FIXTURE_DEFAULT) + defined(FIXTURE_PROD) + defined(FIXTURE_SCANFIELD_SAFETY)) > 1
 #error "Only one fixture can be selected"
 #endif
 
-#if !defined(FIXTURE_DEFAULT) && !defined(FIXTURE_PROD)
+#if !defined(FIXTURE_DEFAULT) && !defined(FIXTURE_PROD) && !defined(FIXTURE_SCANFIELD_SAFETY)
 #error "One fixture must be selected"
 #endif
 
