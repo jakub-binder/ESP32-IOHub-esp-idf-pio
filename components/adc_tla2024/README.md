@@ -27,3 +27,33 @@ Poznámka:
 - `TLA2024:READ <0|1>`
 - `TLA2024:READALL`
 - `TLA2024:REG <00|01>`
+
+## Formát odpovědí
+
+Datové řádky vrací pouze data (bez prefixu `TLA2024`, čísla kanálu nebo názvu registru).
+
+- `TLA2024:READ <0|1>`
+  - success:
+    - `OK-1`
+    - `<raw12_decimal>`
+  - HW/device error:
+    - `OK-1`
+    - `Error: <detail>`
+
+- `TLA2024:READALL`
+  - success:
+    - `OK-2`
+    - `<raw12_ch0_decimal>`
+    - `<raw12_ch1_decimal>`
+  - partial error:
+    - `OK-2`
+    - `Error: CH0 <detail>` nebo `<raw12_ch0_decimal>`
+    - `Error: CH1 <detail>` nebo `<raw12_ch1_decimal>`
+
+- `TLA2024:REG <00|01>`
+  - success:
+    - `OK-1`
+    - `<REG_VALUE_4_HEX_DIGITS>`
+  - HW/device error:
+    - `OK-1`
+    - `Error: <detail>`

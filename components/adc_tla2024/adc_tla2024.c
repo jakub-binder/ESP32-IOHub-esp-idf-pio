@@ -2,6 +2,7 @@
 
 #include "app_commands.h"
 #include "driver/i2c.h"
+#include "esp_err.h"
 #include "esp_log.h"
 
 #include <stdarg.h>
@@ -86,6 +87,37 @@ static void adc_tla2024_printf(app_command_output_fn output, const char *fmt, ..
     va_end(args);
 
     output(buf);
+}
+
+static void adc_tla2024_output_error_line(app_command_output_fn output, const char *fmt, ...)
+{
+    char detail[ADC_TLA2024_CMD_BUF_SIZE];
+    const char *detail_text = NULL;
+    va_list args;
+
+    if (output == NULL)
+    {
+        return;
+    }
+
+    if (fmt != NULL)
+    {
+        va_start(args, fmt);
+        vsnprintf(detail, sizeof(detail), fmt, args);
+        va_end(args);
+        detail_text = detail;
+    }
+
+    output("Error: ");
+    if (detail_text != NULL)
+    {
+        output(detail_text);
+    }
+    else
+    {
+        output("Unknown error");
+    }
+    output("\r\n");
 }
 
 static bool adc_tla2024_parse_channel(const char *text, uint8_t *out_channel)
@@ -308,12 +340,13 @@ static bool adc_tla2024_handle_read(const app_command_ctx_t *cmd_ctx,
     err = adc_tla2024_read_channel_raw12(ctx, channel, &raw12);
     if (err != ESP_OK)
     {
-        adc_tla2024_printf(cmd_ctx->output, "ERR %d\r\n", (int)err);
+        app_commands_respond_ok_with_count(cmd_ctx->output, 1U);
+        adc_tla2024_output_error_line(cmd_ctx->output, "%s (%d)", esp_err_to_name(err), (int)err);
         return true;
     }
 
     app_commands_respond_ok_with_count(cmd_ctx->output, 1U);
-    adc_tla2024_printf(cmd_ctx->output, "TLA2024 %u %u\r\n", (unsigned int)channel, (unsigned int)raw12);
+    adc_tla2024_printf(cmd_ctx->output, "%u\r\n", (unsigned int)raw12);
     return true;
 }
 
@@ -325,7 +358,8 @@ static bool adc_tla2024_handle_read_all(const app_command_ctx_t *cmd_ctx,
     char *extra = strtok_r(args, " \t", &saveptr);
     uint16_t raw0 = 0U;
     uint16_t raw1 = 0U;
-    esp_err_t err;
+    esp_err_t err0;
+    esp_err_t err1;
 
     if (extra != NULL)
     {
@@ -333,23 +367,27 @@ static bool adc_tla2024_handle_read_all(const app_command_ctx_t *cmd_ctx,
         return true;
     }
 
-    err = adc_tla2024_read_channel_raw12(ctx, 0U, &raw0);
-    if (err != ESP_OK)
-    {
-        adc_tla2024_printf(cmd_ctx->output, "ERR %d\r\n", (int)err);
-        return true;
-    }
-
-    err = adc_tla2024_read_channel_raw12(ctx, 1U, &raw1);
-    if (err != ESP_OK)
-    {
-        adc_tla2024_printf(cmd_ctx->output, "ERR %d\r\n", (int)err);
-        return true;
-    }
+    err0 = adc_tla2024_read_channel_raw12(ctx, 0U, &raw0);
+    err1 = adc_tla2024_read_channel_raw12(ctx, 1U, &raw1);
 
     app_commands_respond_ok_with_count(cmd_ctx->output, 2U);
-    adc_tla2024_printf(cmd_ctx->output, "TLA2024 0 %u\r\n", (unsigned int)raw0);
-    adc_tla2024_printf(cmd_ctx->output, "TLA2024 1 %u\r\n", (unsigned int)raw1);
+    if (err0 == ESP_OK)
+    {
+        adc_tla2024_printf(cmd_ctx->output, "%u\r\n", (unsigned int)raw0);
+    }
+    else
+    {
+        adc_tla2024_output_error_line(cmd_ctx->output, "CH0 %s (%d)", esp_err_to_name(err0), (int)err0);
+    }
+
+    if (err1 == ESP_OK)
+    {
+        adc_tla2024_printf(cmd_ctx->output, "%u\r\n", (unsigned int)raw1);
+    }
+    else
+    {
+        adc_tla2024_output_error_line(cmd_ctx->output, "CH1 %s (%d)", esp_err_to_name(err1), (int)err1);
+    }
     return true;
 }
 
@@ -373,12 +411,13 @@ static bool adc_tla2024_handle_reg(const app_command_ctx_t *cmd_ctx,
     err = adc_tla2024_read_reg16(ctx, reg, &value);
     if (err != ESP_OK)
     {
-        adc_tla2024_printf(cmd_ctx->output, "ERR %d\r\n", (int)err);
+        app_commands_respond_ok_with_count(cmd_ctx->output, 1U);
+        adc_tla2024_output_error_line(cmd_ctx->output, "%s (%d)", esp_err_to_name(err), (int)err);
         return true;
     }
 
     app_commands_respond_ok_with_count(cmd_ctx->output, 1U);
-    adc_tla2024_printf(cmd_ctx->output, "TLA2024 REG %02X %04X\r\n", reg, value);
+    adc_tla2024_printf(cmd_ctx->output, "%04X\r\n", value);
     return true;
 }
 
