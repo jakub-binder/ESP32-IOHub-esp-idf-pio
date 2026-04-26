@@ -450,11 +450,15 @@ static bool adc_tla2024_handle_help(const app_command_ctx_t *cmd_ctx,
                                     char *args)
 {
     const size_t help_line_count = sizeof(ADC_TLA2024_HELP_LINES) / sizeof(ADC_TLA2024_HELP_LINES[0]);
+    char *arg_ptr = args;
     size_t i;
-    char *saveptr = NULL;
-    char *extra = strtok_r(args, " \t", &saveptr);
 
-    if (extra != NULL)
+    while (arg_ptr != NULL && (*arg_ptr == ' ' || *arg_ptr == '\t'))
+    {
+        arg_ptr++;
+    }
+
+    if (arg_ptr != NULL && *arg_ptr != '\0')
     {
         adc_tla2024_printf(cmd_ctx->output, "ERR usage: TLA2024:HELP\r\n");
         return true;
