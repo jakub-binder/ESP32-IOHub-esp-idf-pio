@@ -290,6 +290,38 @@ static void eeprom_24c64_respond_error(app_command_output_fn output, const char 
     output("\r\n");
 }
 
+static void eeprom_24c64_respond_operation_error(app_command_output_fn output, const char *fmt, ...)
+{
+    char detail[EEPROM_24C64_CMD_BUF_SIZE];
+    const char *detail_text = NULL;
+    va_list args;
+
+    if (output == NULL)
+    {
+        return;
+    }
+
+    if (fmt != NULL)
+    {
+        va_start(args, fmt);
+        vsnprintf(detail, sizeof(detail), fmt, args);
+        va_end(args);
+        detail_text = detail;
+    }
+
+    output("OK-1\r\n");
+    output("Error: ");
+    if (detail_text != NULL)
+    {
+        output(detail_text);
+    }
+    else
+    {
+        output("Unknown error");
+    }
+    output("\r\n");
+}
+
 static int eeprom_24c64_char_to_nibble(char c)
 {
     if (c >= '0' && c <= '9')
@@ -460,7 +492,7 @@ static bool eeprom_24c64_handle_read(const app_command_ctx_t *cmd_ctx,
     {
         free(hex_line);
         free(buf);
-        eeprom_24c64_respond_error(cmd_ctx->output, "I2C read failed (%d)", (int)err);
+        eeprom_24c64_respond_operation_error(cmd_ctx->output, "I2C read failed (%d)", (int)err);
         return true;
     }
 
@@ -534,7 +566,7 @@ static bool eeprom_24c64_handle_write(const app_command_ctx_t *cmd_ctx,
     free(data);
     if (err != ESP_OK)
     {
-        eeprom_24c64_respond_error(cmd_ctx->output, "I2C write failed (%d)", (int)err);
+        eeprom_24c64_respond_operation_error(cmd_ctx->output, "I2C write failed (%d)", (int)err);
         return true;
     }
 
@@ -562,7 +594,7 @@ static bool eeprom_24c64_handle_dump(const app_command_ctx_t *cmd_ctx,
     err = eeprom_24c64_read(ctx, 0U, data, sizeof(data));
     if (err != ESP_OK)
     {
-        eeprom_24c64_respond_error(cmd_ctx->output, "I2C read failed (%d)", (int)err);
+        eeprom_24c64_respond_operation_error(cmd_ctx->output, "I2C read failed (%d)", (int)err);
         return true;
     }
 
