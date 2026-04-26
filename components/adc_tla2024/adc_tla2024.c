@@ -31,6 +31,15 @@ static const char *const ADC_TLA2024_CMD_READ = "TLA2024:READ";
 static const char *const ADC_TLA2024_CMD_READALL = "TLA2024:READALL";
 static const char *const ADC_TLA2024_CMD_REG = "TLA2024:REG";
 static const char *const ADC_TLA2024_CMD_HELP = "TLA2024:HELP";
+static const char *const ADC_TLA2024_HELP_LINES[] = {
+    "TLA2024:HELP\r\n",
+    "TLA2024:READ <0|1>\r\n",
+    "TLA2024:READALL\r\n",
+    "TLA2024:REG <00|01>\r\n",
+    "Examples:\r\n",
+    "TLA2024:READ 0\r\n",
+    "TLA2024:REG 01\r\n",
+};
 static const char *const ADC_TLA2024_TAG = "adc_tla2024";
 
 /* Checks whether context is available and initialized before I2C/command operations. */
@@ -440,6 +449,8 @@ static bool adc_tla2024_handle_reg(const app_command_ctx_t *cmd_ctx,
 static bool adc_tla2024_handle_help(const app_command_ctx_t *cmd_ctx,
                                     char *args)
 {
+    const size_t help_line_count = sizeof(ADC_TLA2024_HELP_LINES) / sizeof(ADC_TLA2024_HELP_LINES[0]);
+    size_t i;
     char *saveptr = NULL;
     char *extra = strtok_r(args, " \t", &saveptr);
 
@@ -449,14 +460,11 @@ static bool adc_tla2024_handle_help(const app_command_ctx_t *cmd_ctx,
         return true;
     }
 
-    app_commands_respond_ok_with_count(cmd_ctx->output, 7U);
-    adc_tla2024_printf(cmd_ctx->output, "TLA2024:HELP\r\n");
-    adc_tla2024_printf(cmd_ctx->output, "TLA2024:READ <0|1>\r\n");
-    adc_tla2024_printf(cmd_ctx->output, "TLA2024:READALL\r\n");
-    adc_tla2024_printf(cmd_ctx->output, "TLA2024:REG <00|01>\r\n");
-    adc_tla2024_printf(cmd_ctx->output, "Examples:\r\n");
-    adc_tla2024_printf(cmd_ctx->output, "TLA2024:READ 0\r\n");
-    adc_tla2024_printf(cmd_ctx->output, "TLA2024:REG 01\r\n");
+    app_commands_respond_ok_with_count(cmd_ctx->output, help_line_count);
+    for (i = 0; i < help_line_count; i++)
+    {
+        adc_tla2024_printf(cmd_ctx->output, "%s", ADC_TLA2024_HELP_LINES[i]);
+    }
     return true;
 }
 
