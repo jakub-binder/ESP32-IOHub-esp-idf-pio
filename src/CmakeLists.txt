@@ -20,4 +20,5 @@ idf_component_register(
         eeprom_24c64
         i2c_bus
         temp_lm75bdp
+        adc_tla2024
 )
