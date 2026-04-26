@@ -29,6 +29,7 @@
 static const char *const EEPROM_24C64_CMD_READ = "EEPROM64:READ";
 static const char *const EEPROM_24C64_CMD_WRITE = "EEPROM64:WRITE";
 static const char *const EEPROM_24C64_CMD_DUMP = "EEPROM64:DUMP";
+static const char *const EEPROM_24C64_CMD_HELP = "EEPROM64:HELP";
 static const char *const EEPROM_24C64_TAG = "eeprom_24c64";
 
 static bool eeprom_24c64_is_ready(const eeprom_24c64_t *ctx)
@@ -383,9 +384,29 @@ static void eeprom_24c64_bytes_to_hex_upper(const uint8_t *data, size_t len, cha
 
 static bool eeprom_24c64_is_supported_command(const char *cmd)
 {
-    return (strcmp(cmd, EEPROM_24C64_CMD_READ) == 0) ||
+    return (strcmp(cmd, EEPROM_24C64_CMD_HELP) == 0) ||
+           (strcmp(cmd, EEPROM_24C64_CMD_READ) == 0) ||
            (strcmp(cmd, EEPROM_24C64_CMD_WRITE) == 0) ||
            (strcmp(cmd, EEPROM_24C64_CMD_DUMP) == 0);
+}
+
+static bool eeprom_24c64_handle_help(const app_command_ctx_t *cmd_ctx, char *args)
+{
+    char *saveptr = NULL;
+    char *extra = strtok_r(args, " \t", &saveptr);
+
+    if (extra != NULL)
+    {
+        eeprom_24c64_respond_error(cmd_ctx->output, "Invalid arguments");
+        return true;
+    }
+
+    app_commands_respond_ok_with_count(cmd_ctx->output, 4U);
+    eeprom_24c64_printf(cmd_ctx->output, "EEPROM64:HELP\r\n");
+    eeprom_24c64_printf(cmd_ctx->output, "EEPROM64:READ 0x00 16\r\n");
+    eeprom_24c64_printf(cmd_ctx->output, "EEPROM64:WRITE 0x10 00000000\r\n");
+    eeprom_24c64_printf(cmd_ctx->output, "EEPROM64:DUMP\r\n");
+    return true;
 }
 
 static bool eeprom_24c64_handle_read(const app_command_ctx_t *cmd_ctx,
@@ -576,6 +597,11 @@ static bool eeprom_24c64_command_handler(const app_command_ctx_t *cmd_ctx,
     {
         eeprom_24c64_respond_error(cmd_ctx->output, "EEPROM64 not available");
         return true;
+    }
+
+    if (strcmp(cmd, EEPROM_24C64_CMD_HELP) == 0)
+    {
+        return eeprom_24c64_handle_help(cmd_ctx, args);
     }
 
     if (strcmp(cmd, EEPROM_24C64_CMD_READ) == 0)
