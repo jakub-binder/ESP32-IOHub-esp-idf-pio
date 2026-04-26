@@ -30,23 +30,28 @@
 static const char *const ADC_TLA2024_CMD_READ = "TLA2024:READ";
 static const char *const ADC_TLA2024_CMD_READALL = "TLA2024:READALL";
 static const char *const ADC_TLA2024_CMD_REG = "TLA2024:REG";
+static const char *const ADC_TLA2024_CMD_HELP = "TLA2024:HELP";
 static const char *const ADC_TLA2024_TAG = "adc_tla2024";
 
+/* Checks whether context is available and initialized before I2C/command operations. */
 static bool adc_tla2024_is_ready(const adc_tla2024_t *ctx)
 {
     return (ctx != NULL) && ctx->initialized;
 }
 
+/* Validates 7-bit I2C device address passed from configuration. */
 static bool adc_tla2024_dev_addr_is_valid(uint8_t dev_addr)
 {
     return (dev_addr != 0U) && ((dev_addr & 0x80U) == 0U);
 }
 
+/* Restricts supported channels for first iteration (CH0 and CH1). */
 static bool adc_tla2024_channel_is_valid(uint8_t channel)
 {
     return (channel == 0U) || (channel == 1U);
 }
 
+/* Converts configured timeout from milliseconds to FreeRTOS ticks. */
 static TickType_t adc_tla2024_timeout_ticks(const adc_tla2024_t *ctx)
 {
     const uint32_t timeout_ms = (ctx->i2c_timeout_ms == 0U)
@@ -55,6 +60,7 @@ static TickType_t adc_tla2024_timeout_ticks(const adc_tla2024_t *ctx)
     return pdMS_TO_TICKS(timeout_ms);
 }
 
+/* Builds single-shot config word for selected channel with fixed PGA and data rate. */
 static uint16_t adc_tla2024_build_config_single_shot(uint8_t channel)
 {
     uint16_t mux_bits = ADC_TLA2024_MUX_CH0_SINGLE;
@@ -69,9 +75,10 @@ static uint16_t adc_tla2024_build_config_single_shot(uint8_t channel)
            (uint16_t)(ADC_TLA2024_PGA_FS_4V096 << ADC_TLA2024_PGA_SHIFT) |
            ADC_TLA2024_MODE_SINGLE_SHOT |
            (uint16_t)(ADC_TLA2024_DR_1600_SPS << ADC_TLA2024_DR_SHIFT) |
-           ADC_TLA2024_RESERVED_MASK;
+            ADC_TLA2024_RESERVED_MASK;
 }
 
+/* Formats and sends one response line to command output callback. */
 static void adc_tla2024_printf(app_command_output_fn output, const char *fmt, ...)
 {
     char buf[ADC_TLA2024_CMD_BUF_SIZE];
@@ -89,6 +96,7 @@ static void adc_tla2024_printf(app_command_output_fn output, const char *fmt, ..
     output(buf);
 }
 
+/* Sends protocol-compatible Error line used after OK-N headers on runtime faults. */
 static void adc_tla2024_output_error_line(app_command_output_fn output, const char *fmt, ...)
 {
     char detail[ADC_TLA2024_CMD_BUF_SIZE];
@@ -120,6 +128,7 @@ static void adc_tla2024_output_error_line(app_command_output_fn output, const ch
     output("\r\n");
 }
 
+/* Parses channel argument accepted by READ command. */
 static bool adc_tla2024_parse_channel(const char *text, uint8_t *out_channel)
 {
     if (text == NULL || out_channel == NULL)
@@ -142,6 +151,7 @@ static bool adc_tla2024_parse_channel(const char *text, uint8_t *out_channel)
     return false;
 }
 
+/* Parses supported register selector used by REG command. */
 static bool adc_tla2024_parse_reg_hex(const char *text, uint8_t *out_reg)
 {
     if (text == NULL || out_reg == NULL)
@@ -313,13 +323,16 @@ esp_err_t adc_tla2024_read_channel_raw12(adc_tla2024_t *ctx,
     return ESP_OK;
 }
 
+/* Checks if command belongs to this component before dispatching handlers. */
 static bool adc_tla2024_is_supported_command(const char *cmd)
 {
     return (strcmp(cmd, ADC_TLA2024_CMD_READ) == 0) ||
            (strcmp(cmd, ADC_TLA2024_CMD_READALL) == 0) ||
-           (strcmp(cmd, ADC_TLA2024_CMD_REG) == 0);
+           (strcmp(cmd, ADC_TLA2024_CMD_REG) == 0) ||
+           (strcmp(cmd, ADC_TLA2024_CMD_HELP) == 0);
 }
 
+/* Handles TLA2024:READ command and returns one data line or one Error line. */
 static bool adc_tla2024_handle_read(const app_command_ctx_t *cmd_ctx,
                                     adc_tla2024_t *ctx,
                                     char *args)
@@ -350,6 +363,7 @@ static bool adc_tla2024_handle_read(const app_command_ctx_t *cmd_ctx,
     return true;
 }
 
+/* Handles TLA2024:READALL command and returns one line per supported channel. */
 static bool adc_tla2024_handle_read_all(const app_command_ctx_t *cmd_ctx,
                                         adc_tla2024_t *ctx,
                                         char *args)
@@ -391,6 +405,7 @@ static bool adc_tla2024_handle_read_all(const app_command_ctx_t *cmd_ctx,
     return true;
 }
 
+/* Handles TLA2024:REG command and returns one register value or one Error line. */
 static bool adc_tla2024_handle_reg(const app_command_ctx_t *cmd_ctx,
                                    adc_tla2024_t *ctx,
                                    char *args)
@@ -421,6 +436,31 @@ static bool adc_tla2024_handle_reg(const app_command_ctx_t *cmd_ctx,
     return true;
 }
 
+/* Handles TLA2024:HELP command and prints supported commands with examples. */
+static bool adc_tla2024_handle_help(const app_command_ctx_t *cmd_ctx,
+                                    char *args)
+{
+    char *saveptr = NULL;
+    char *extra = strtok_r(args, " \t", &saveptr);
+
+    if (extra != NULL)
+    {
+        adc_tla2024_printf(cmd_ctx->output, "ERR usage: TLA2024:HELP\r\n");
+        return true;
+    }
+
+    app_commands_respond_ok_with_count(cmd_ctx->output, 7U);
+    adc_tla2024_printf(cmd_ctx->output, "TLA2024:HELP\r\n");
+    adc_tla2024_printf(cmd_ctx->output, "TLA2024:READ <0|1>\r\n");
+    adc_tla2024_printf(cmd_ctx->output, "TLA2024:READALL\r\n");
+    adc_tla2024_printf(cmd_ctx->output, "TLA2024:REG <00|01>\r\n");
+    adc_tla2024_printf(cmd_ctx->output, "Examples:\r\n");
+    adc_tla2024_printf(cmd_ctx->output, "TLA2024:READ 0\r\n");
+    adc_tla2024_printf(cmd_ctx->output, "TLA2024:REG 01\r\n");
+    return true;
+}
+
+/* Main command callback: validates command and routes it to component handlers. */
 static bool adc_tla2024_command_handler(const app_command_ctx_t *cmd_ctx,
                                         const char *cmd,
                                         char *args,
@@ -459,9 +499,15 @@ static bool adc_tla2024_command_handler(const app_command_ctx_t *cmd_ctx,
         return adc_tla2024_handle_reg(cmd_ctx, ctx, args);
     }
 
+    if (strcmp(cmd, ADC_TLA2024_CMD_HELP) == 0)
+    {
+        return adc_tla2024_handle_help(cmd_ctx, args);
+    }
+
     return false;
 }
 
+/* Registers component command handler into shared app command dispatcher. */
 void adc_tla2024_register_commands(adc_tla2024_t *ctx)
 {
     bool registered;
