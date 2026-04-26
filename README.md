@@ -53,6 +53,7 @@ Výběr:
 
 - FIXTURE_DEFAULT
 - FIXTURE_PROD
+- FIXTURE_SCANFIL_SAFETY
 
 Implementace:
 src/fixtures/
@@ -121,6 +122,7 @@ Každý flag musí být definován právě jednou. Kombinace neplatných hodnot 
 
 - `-DFIXTURE_DEFAULT` – výchozí HW konfigurace
 - `-DFIXTURE_PROD` – produkční HW konfigurace
+- `-DFIXTURE_SCANFIL_SAFETY` – scanfil safety fixture s EEPROM 24C64
 
 **Výběr desky** (povinné, jedno z):
 
