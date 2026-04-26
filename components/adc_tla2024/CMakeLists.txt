@@ -1,0 +1,10 @@
+idf_component_register(
+    SRCS
+        "adc_tla2024.c"
+    INCLUDE_DIRS
+        "include"
+    PRIV_INCLUDE_DIRS
+        "../../include"
+    REQUIRES
+        driver
+)
