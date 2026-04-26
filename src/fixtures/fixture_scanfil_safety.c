@@ -10,11 +10,13 @@
 #include "i2c_bus.h"
 
 static int64_t g_last_log_time_us = 0;
-static i2c_bus_t g_i2c_bus;
+static i2c_bus_t g_i2c1_bus;
+static i2c_bus_t g_i2c2_bus;
 static eeprom_24c64_t g_eeprom_24c64;
 static adc_tla2024_t g_adc_tla2024;
 
-#define FIXTURE_SCANFIL_SAFETY_I2C_PORT           I2C_NUM_0
+#define FIXTURE_SCANFIL_SAFETY_I2C1_PORT          I2C_NUM_0
+#define FIXTURE_SCANFIL_SAFETY_I2C2_PORT          I2C_NUM_1
 #define FIXTURE_SCANFIL_SAFETY_I2C_FREQ_HZ        100000U
 #define FIXTURE_SCANFIL_SAFETY_EEPROM_DEV_ADDR    0x53U
 #define FIXTURE_SCANFIL_SAFETY_ADC_DEV_ADDR       0x48U
@@ -33,11 +35,19 @@ const fixture_t fixture_scanfil_safety =
 
 static void fixture_scanfil_safety_setup_impl(void)
 {
-    bool i2c_ready = false;
-    const i2c_bus_config_t i2c_bus_cfg = {
-        .port = FIXTURE_SCANFIL_SAFETY_I2C_PORT,
+    bool i2c1_ready = false;
+    bool i2c2_ready = false;
+    const i2c_bus_config_t i2c1_bus_cfg = {
+        .port = FIXTURE_SCANFIL_SAFETY_I2C1_PORT,
         .sda_pin = BOARD_I2C1_SDA_PIN,
         .scl_pin = BOARD_I2C1_SCL_PIN,
+        .frequency_hz = FIXTURE_SCANFIL_SAFETY_I2C_FREQ_HZ,
+        .pullup_enable = true,
+    };
+    const i2c_bus_config_t i2c2_bus_cfg = {
+        .port = FIXTURE_SCANFIL_SAFETY_I2C2_PORT,
+        .sda_pin = BOARD_I2C2_SDA_PIN,
+        .scl_pin = BOARD_I2C2_SCL_PIN,
         .frequency_hz = FIXTURE_SCANFIL_SAFETY_I2C_FREQ_HZ,
         .pullup_enable = true,
     };
@@ -46,24 +56,26 @@ static void fixture_scanfil_safety_setup_impl(void)
     APP_LOGI(APP_FIXTURE_LOG_TAG, "fixture_scanfil_safety_setup()");
     APP_LOGI(APP_FIXTURE_LOG_TAG, "Running on board: %s", BOARD_NAME);
 
-    err = i2c_bus_init(&g_i2c_bus, &i2c_bus_cfg);
+    err = i2c_bus_init(&g_i2c1_bus, &i2c1_bus_cfg);
     if (err != ESP_OK)
     {
-        APP_LOGE(APP_FIXTURE_LOG_TAG, "i2c_bus_init failed: %d", (int)err);
+        APP_LOGE(APP_FIXTURE_LOG_TAG, "i2c_bus_init(I2C1) failed: %d", (int)err);
     }
-    i2c_ready = i2c_bus_is_initialized(&g_i2c_bus);
+    i2c1_ready = i2c_bus_is_initialized(&g_i2c1_bus);
 
-    if (i2c_ready)
+    err = i2c_bus_init(&g_i2c2_bus, &i2c2_bus_cfg);
+    if (err != ESP_OK)
+    {
+        APP_LOGE(APP_FIXTURE_LOG_TAG, "i2c_bus_init(I2C2) failed: %d", (int)err);
+    }
+    i2c2_ready = i2c_bus_is_initialized(&g_i2c2_bus);
+
+    if (i2c1_ready)
     {
         const eeprom_24c64_cfg_t eeprom_cfg = {
-            .i2c_port = i2c_bus_port(&g_i2c_bus),
+            .i2c_port = i2c_bus_port(&g_i2c1_bus),
             .dev_addr = FIXTURE_SCANFIL_SAFETY_EEPROM_DEV_ADDR,
             .ack_poll_timeout_ms = 20U,
-        };
-        const adc_tla2024_cfg_t adc_cfg = {
-            .i2c_port = i2c_bus_port(&g_i2c_bus),
-            .dev_addr = FIXTURE_SCANFIL_SAFETY_ADC_DEV_ADDR,
-            .i2c_timeout_ms = 100U,
         };
 
         err = eeprom_24c64_init(&g_eeprom_24c64, &eeprom_cfg);
@@ -71,6 +83,19 @@ static void fixture_scanfil_safety_setup_impl(void)
         {
             APP_LOGE(APP_FIXTURE_LOG_TAG, "eeprom_24c64_init failed: %d", (int)err);
         }
+    }
+    else
+    {
+        APP_LOGW(APP_FIXTURE_LOG_TAG, "EEPROM64 init skipped: I2C1 bus not ready");
+    }
+
+    if (i2c2_ready)
+    {
+        const adc_tla2024_cfg_t adc_cfg = {
+            .i2c_port = i2c_bus_port(&g_i2c2_bus),
+            .dev_addr = FIXTURE_SCANFIL_SAFETY_ADC_DEV_ADDR,
+            .i2c_timeout_ms = 100U,
+        };
 
         err = adc_tla2024_init(&g_adc_tla2024, &adc_cfg);
         if (err != ESP_OK)
@@ -80,8 +105,7 @@ static void fixture_scanfil_safety_setup_impl(void)
     }
     else
     {
-        APP_LOGW(APP_FIXTURE_LOG_TAG, "EEPROM64 init skipped: I2C bus not ready");
-        APP_LOGW(APP_FIXTURE_LOG_TAG, "TLA2024 init skipped: I2C bus not ready");
+        APP_LOGW(APP_FIXTURE_LOG_TAG, "TLA2024 init skipped: I2C2 bus not ready");
     }
 }
 
