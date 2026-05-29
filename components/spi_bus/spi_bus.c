@@ -268,6 +268,7 @@ esp_err_t spi_device_deinit(spi_device_t *dev)
 
     dev->initialized = false;
     dev->platform_handle = NULL;
+    dev->bus = NULL;
     return ESP_OK;
 }
 
