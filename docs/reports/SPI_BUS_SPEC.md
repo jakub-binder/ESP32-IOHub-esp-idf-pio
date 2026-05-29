@@ -23,16 +23,16 @@ Tento dokument popisuje technickou specifikaci komponenty `spi_bus` podle archit
 
 ### spi_bus_t
 
-- `host_id` – identifikátor SPI hostu (hodnota z ESP-IDF `spi_host_device_t`, např. SPI2_HOST/SPI3_HOST dle cílového SoC).
+- `host_id` – identifikátor SPI hostu (hodnota z ESP-IDF `spi_host_device_t`, např. SPI1_HOST/SPI2_HOST/SPI3_HOST dle cílového SoC).
 - `sclk_pin` – GPIO pin pro SCLK.
 - `mosi_pin` – GPIO pin pro MOSI.
 - `miso_pin` – GPIO pin pro MISO.
 - `initialized` – stav inicializace busu.
-- `platform_handle` – interní handle na ESP-IDF bus kontext; pole je viditelné jen kvůli integraci s ESP-IDF, ale ostatní kód jej nesmí používat ani měnit (viz otevřená otázka o opaque typech).
+- `platform_handle` – interní handle na ESP-IDF bus kontext; v této specifikaci je pole veřejné, ale musí být považováno za opaque a nesmí být používáno ani měněno mimo komponentu `spi_bus` (viz otevřená otázka o opaque typech).
 
 ### spi_bus_config_t
 
-- `host_id` – požadovaný SPI host (hodnota z ESP-IDF `spi_host_device_t`, např. SPI2_HOST/SPI3_HOST dle cílového SoC).
+- `host_id` – požadovaný SPI host (hodnota z ESP-IDF `spi_host_device_t`, např. SPI1_HOST/SPI2_HOST/SPI3_HOST dle cílového SoC).
 - `sclk_pin` – GPIO pin pro SCLK.
 - `mosi_pin` – GPIO pin pro MOSI.
 - `miso_pin` – GPIO pin pro MISO.
@@ -44,7 +44,7 @@ Tento dokument popisuje technickou specifikaci komponenty `spi_bus` podle archit
 - `mode` – SPI mód zařízení (0–3).
 - `clock_hz` – SPI frekvence zařízení.
 - `initialized` – stav inicializace zařízení.
-- `platform_handle` – interní handle na ESP-IDF device kontext; pole je viditelné jen kvůli integraci s ESP-IDF, ale ostatní kód jej nesmí používat ani měnit (viz otevřená otázka o opaque typech).
+- `platform_handle` – interní handle na ESP-IDF device kontext; v této specifikaci je pole veřejné, ale musí být považováno za opaque a nesmí být používáno ani měněno mimo komponentu `spi_bus` (viz otevřená otázka o opaque typech).
 
 ### spi_device_config_t
 
