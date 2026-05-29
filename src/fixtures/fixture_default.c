@@ -140,7 +140,7 @@ static void fixture_default_loop_impl(void)
 static void fixture_default_command_printf(const app_command_ctx_t *ctx,
                                            const char *fmt, ...)
 {
-    char buf[128];
+    char buf[256];
     va_list args;
 
     if (ctx == NULL || ctx->output == NULL)
