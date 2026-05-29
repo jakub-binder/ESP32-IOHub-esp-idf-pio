@@ -9,7 +9,7 @@ Tento dokument popisuje technickou specifikaci komponenty `spi_bus` podle archit
 - `spi_bus_init` – inicializuje fyzickou SPI sběrnici podle konfigurace a nastaví interní stav busu.
 - `spi_bus_deinit` – uvolní prostředky sběrnice a přepne bus do neinicializovaného stavu.
 - `spi_bus_is_initialized` – vrátí informaci, zda je bus inicializovaný.
-- `spi_bus_host` – vrátí identifikátor SPI hostu/portu přidělený sběrnici (např. pro diagnostiku nebo předávání do dalších komponent).
+- `spi_bus_host_id` – vrátí identifikátor SPI hostu přidělený sběrnici (např. pro diagnostiku nebo předávání do dalších komponent).
 
 ### SPI device
 
@@ -23,16 +23,16 @@ Tento dokument popisuje technickou specifikaci komponenty `spi_bus` podle archit
 
 ### spi_bus_t
 
-- `host_id` – identifikátor SPI hostu/portu, který je pro bus použit.
+- `host_id` – identifikátor SPI hostu (hodnota z ESP-IDF `spi_host_device_t`, např. SPI2_HOST/SPI3_HOST dle cílového SoC).
 - `sclk_pin` – GPIO pin pro SCLK.
 - `mosi_pin` – GPIO pin pro MOSI.
 - `miso_pin` – GPIO pin pro MISO.
 - `initialized` – stav inicializace busu.
-- `platform_handle` – interní handle na ESP-IDF bus kontext; pole je vyhrazené pouze pro komponentu `spi_bus` a není určeno k použití mimo ni.
+- `platform_handle` – interní handle na ESP-IDF bus kontext; pole je viditelné jen kvůli integraci s ESP-IDF, ale ostatní kód jej nesmí používat ani měnit (viz otevřená otázka o opaque typech).
 
 ### spi_bus_config_t
 
-- `host_id` – požadovaný SPI host/port.
+- `host_id` – požadovaný SPI host (hodnota z ESP-IDF `spi_host_device_t`, např. SPI2_HOST/SPI3_HOST dle cílového SoC).
 - `sclk_pin` – GPIO pin pro SCLK.
 - `mosi_pin` – GPIO pin pro MOSI.
 - `miso_pin` – GPIO pin pro MISO.
@@ -44,7 +44,7 @@ Tento dokument popisuje technickou specifikaci komponenty `spi_bus` podle archit
 - `mode` – SPI mód zařízení (0–3).
 - `clock_hz` – SPI frekvence zařízení.
 - `initialized` – stav inicializace zařízení.
-- `platform_handle` – interní handle na ESP-IDF device kontext; pole je vyhrazené pouze pro komponentu `spi_bus` a není určeno k použití mimo ni.
+- `platform_handle` – interní handle na ESP-IDF device kontext; pole je viditelné jen kvůli integraci s ESP-IDF, ale ostatní kód jej nesmí používat ani měnit (viz otevřená otázka o opaque typech).
 
 ### spi_device_config_t
 
@@ -95,7 +95,7 @@ Tento dokument popisuje technickou specifikaci komponenty `spi_bus` podle archit
 
 - Ověřit nenulové ukazatele na bus/device a konfiguraci.
 - Ověřit validitu pinů (GPIO range, konflikt SCLK/MOSI/MISO/CS).
-- Ověřit validitu SPI hostu/portu.
+- Ověřit validitu `host_id` vůči povoleným hodnotám ESP-IDF `spi_host_device_t` pro daný SoC.
 - Ověřit `mode` v rozsahu 0–3.
 - Ověřit `clock_hz` > 0.
 - Ověřit, že `spi_device_init` je voláno nad inicializovaným busem.
@@ -105,7 +105,7 @@ Tento dokument popisuje technickou specifikaci komponenty `spi_bus` podle archit
 
 - Neplatné nebo chybějící parametry konfigurace.
 - Neplatné GPIO piny nebo konfliktní mapování.
-- Neplatný SPI host/port.
+- Neplatný `host_id`.
 - Neplatný mód nebo frekvence zařízení.
 
 ### ESP_ERR_INVALID_STATE
