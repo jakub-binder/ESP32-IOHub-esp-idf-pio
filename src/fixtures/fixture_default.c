@@ -24,8 +24,10 @@ static temp_lm75bdp_t g_temp_lm75bdp;
 
 #define FIXTURE_DEFAULT_I2C_PORT          I2C_NUM_0
 #define FIXTURE_DEFAULT_I2C_FREQ_HZ       100000
+#define FIXTURE_DEFAULT_COMMAND_OUTPUT_BUFFER_SIZE 256U
 #define FIXTURE_DEFAULT_SPI_CLOCK_HZ      1000000U
 #define FIXTURE_DEFAULT_SPI_MODE          0U
+#define FIXTURE_DEFAULT_SPI_TEST_DATA_SIZE 4U
 
 #if defined(BOARD_HAS_VSPI) && BOARD_HAS_VSPI
 #define FIXTURE_DEFAULT_SPI_HOST          SPI3_HOST
@@ -140,7 +142,7 @@ static void fixture_default_loop_impl(void)
 static void fixture_default_command_printf(const app_command_ctx_t *ctx,
                                            const char *fmt, ...)
 {
-    char buf[256];
+    char buf[FIXTURE_DEFAULT_COMMAND_OUTPUT_BUFFER_SIZE];
     va_list args;
 
     if (ctx == NULL || ctx->output == NULL)
@@ -179,8 +181,8 @@ static bool fixture_default_spi_loopback_command_handler(const app_command_ctx_t
                                                          char *args,
                                                          void *user_ctx)
 {
-    static const uint8_t tx_data[4] = {0x55, 0xAA, 0x12, 0x34};
-    uint8_t rx_data[4] = {0};
+    static const uint8_t tx_data[FIXTURE_DEFAULT_SPI_TEST_DATA_SIZE] = {0x55, 0xAA, 0x12, 0x34};
+    uint8_t rx_data[FIXTURE_DEFAULT_SPI_TEST_DATA_SIZE] = {0};
     spi_bus_t bus = {0};
     spi_device_t dev = {0};
     bool match = false;
