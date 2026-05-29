@@ -23,7 +23,7 @@ Tento dokument popisuje technickou specifikaci komponenty `spi_bus` podle archit
 
 ### spi_bus_t
 
-- `host_id` – identifikátor SPI hostu (hodnota z ESP-IDF `spi_host_device_t`, např. SPI1_HOST/SPI2_HOST/SPI3_HOST dle cílového SoC).
+- `host_id` – identifikátor SPI hostu (hodnota z ESP-IDF `spi_host_device_t`); dostupné hosty jsou SoC‑specifické a některé mohou být rezervované pro flash (typicky SPI1_HOST).
 - `sclk_pin` – GPIO pin pro SCLK.
 - `mosi_pin` – GPIO pin pro MOSI.
 - `miso_pin` – GPIO pin pro MISO.
@@ -32,7 +32,7 @@ Tento dokument popisuje technickou specifikaci komponenty `spi_bus` podle archit
 
 ### spi_bus_config_t
 
-- `host_id` – požadovaný SPI host (hodnota z ESP-IDF `spi_host_device_t`, např. SPI1_HOST/SPI2_HOST/SPI3_HOST dle cílového SoC).
+- `host_id` – požadovaný SPI host (hodnota z ESP-IDF `spi_host_device_t`); dostupné hosty jsou SoC‑specifické a některé mohou být rezervované pro flash (typicky SPI1_HOST).
 - `sclk_pin` – GPIO pin pro SCLK.
 - `mosi_pin` – GPIO pin pro MOSI.
 - `miso_pin` – GPIO pin pro MISO.
