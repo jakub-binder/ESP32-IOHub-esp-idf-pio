@@ -231,7 +231,7 @@ static bool fixture_default_spi_loopback_command_handler(const app_command_ctx_t
     {
         fixture_default_command_printf(ctx, "FAIL\r\n");
         fixture_default_command_printf(ctx, "ERR spi_bus_init=%d\r\n", (int)err);
-        goto cleanup;
+        goto cleanup_spi;
     }
 
     err = spi_device_init(&dev, &dev_cfg);
@@ -239,7 +239,7 @@ static bool fixture_default_spi_loopback_command_handler(const app_command_ctx_t
     {
         fixture_default_command_printf(ctx, "FAIL\r\n");
         fixture_default_command_printf(ctx, "ERR spi_device_init=%d\r\n", (int)err);
-        goto cleanup;
+        goto cleanup_spi;
     }
 
     err = spi_device_transfer(&dev, tx_data, rx_data, sizeof(tx_data));
@@ -247,7 +247,7 @@ static bool fixture_default_spi_loopback_command_handler(const app_command_ctx_t
     {
         fixture_default_command_printf(ctx, "FAIL\r\n");
         fixture_default_command_printf(ctx, "ERR spi_device_transfer=%d\r\n", (int)err);
-        goto cleanup;
+        goto cleanup_spi;
     }
 
     match = (memcmp(tx_data, rx_data, sizeof(tx_data)) == 0);
@@ -262,7 +262,7 @@ static bool fixture_default_spi_loopback_command_handler(const app_command_ctx_t
         fixture_default_print_bytes(ctx, "RX: ", rx_data, sizeof(rx_data));
     }
 
-cleanup:
+cleanup_spi:
     if (spi_device_is_initialized(&dev))
     {
         err = spi_device_deinit(&dev);
