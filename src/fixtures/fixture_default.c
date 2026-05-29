@@ -181,6 +181,7 @@ static bool fixture_default_spi_loopback_command_handler(const app_command_ctx_t
                                                          char *args,
                                                          void *user_ctx)
 {
+    /* Alternating bit patterns + mixed values for basic loopback coverage. */
     static const uint8_t tx_data[FIXTURE_DEFAULT_SPI_TEST_DATA_SIZE] = {0x55, 0xAA, 0x12, 0x34};
     uint8_t rx_data[FIXTURE_DEFAULT_SPI_TEST_DATA_SIZE] = {0};
     spi_bus_t bus = {0};
@@ -264,11 +265,19 @@ static bool fixture_default_spi_loopback_command_handler(const app_command_ctx_t
 cleanup:
     if (spi_device_is_initialized(&dev))
     {
-        spi_device_deinit(&dev);
+        err = spi_device_deinit(&dev);
+        if (err != ESP_OK)
+        {
+            fixture_default_command_printf(ctx, "ERR spi_device_deinit=%d\r\n", (int)err);
+        }
     }
     if (spi_bus_is_initialized(&bus))
     {
-        spi_bus_deinit(&bus);
+        err = spi_bus_deinit(&bus);
+        if (err != ESP_OK)
+        {
+            fixture_default_command_printf(ctx, "ERR spi_bus_deinit=%d\r\n", (int)err);
+        }
     }
     return true;
 #endif
