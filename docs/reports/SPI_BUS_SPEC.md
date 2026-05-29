@@ -23,16 +23,16 @@ Tento dokument popisuje technickou specifikaci komponenty `spi_bus` podle archit
 
 ### spi_bus_t
 
-- `host` – identifikátor SPI hostu/portu, který je pro bus použit.
+- `host_id` – identifikátor SPI hostu/portu, který je pro bus použit.
 - `sclk_pin` – GPIO pin pro SCLK.
 - `mosi_pin` – GPIO pin pro MOSI.
 - `miso_pin` – GPIO pin pro MISO.
 - `initialized` – stav inicializace busu.
-- `platform_handle` – interní/opaque handle na ESP-IDF bus kontext (není součástí veřejné API).
+- `platform_handle` – interní handle na ESP-IDF bus kontext; pole je vyhrazené pouze pro komponentu `spi_bus` a není určeno k použití mimo ni.
 
 ### spi_bus_config_t
 
-- `host` – požadovaný SPI host/port.
+- `host_id` – požadovaný SPI host/port.
 - `sclk_pin` – GPIO pin pro SCLK.
 - `mosi_pin` – GPIO pin pro MOSI.
 - `miso_pin` – GPIO pin pro MISO.
@@ -44,7 +44,7 @@ Tento dokument popisuje technickou specifikaci komponenty `spi_bus` podle archit
 - `mode` – SPI mód zařízení (0–3).
 - `clock_hz` – SPI frekvence zařízení.
 - `initialized` – stav inicializace zařízení.
-- `platform_handle` – interní/opaque handle na ESP-IDF device kontext (není součástí veřejné API).
+- `platform_handle` – interní handle na ESP-IDF device kontext; pole je vyhrazené pouze pro komponentu `spi_bus` a není určeno k použití mimo ni.
 
 ### spi_device_config_t
 
@@ -140,4 +140,5 @@ Tento dokument popisuje technickou specifikaci komponenty `spi_bus` podle archit
 - Zda je CS obsluhován čistě HW SPI periferií, nebo bude potřeba explicitní GPIO řízení.
 - Zda `spi_bus` interně sleduje aktivní zařízení a blokuje `spi_bus_deinit`, pokud ještě existují.
 - Zda `spi_bus` nabídne obdobu `set_pins_state` pro řízení pinů po ukončení práce se sběrnicí.
-- Zda existují další požadavky vyplývající z dokumentu `docs/reports/REPORT.md` (soubor není v repo k dispozici).
+- Zda `spi_bus_t` a `spi_device_t` mají být dlouhodobě veřejné struktury, nebo zda má být API postavené na opaque typech s privátním stavem.
+- Zda existují další požadavky vyplývající z dokumentu `docs/reports/REPORT.md` (soubor aktuálně není v repo k dispozici).
