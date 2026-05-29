@@ -24,7 +24,7 @@ static temp_lm75bdp_t g_temp_lm75bdp;
 
 #define FIXTURE_DEFAULT_I2C_PORT          I2C_NUM_0
 #define FIXTURE_DEFAULT_I2C_FREQ_HZ       100000
-#define FIXTURE_DEFAULT_COMMAND_OUTPUT_BUFFER_SIZE 256U
+#define FIXTURE_DEFAULT_CLI_OUTPUT_BUFFER_SIZE 256U
 #define FIXTURE_DEFAULT_SPI_CLOCK_HZ      1000000U
 #define FIXTURE_DEFAULT_SPI_MODE          0U
 #define FIXTURE_DEFAULT_SPI_TEST_DATA_SIZE 4U
@@ -142,7 +142,7 @@ static void fixture_default_loop_impl(void)
 static void fixture_default_command_printf(const app_command_ctx_t *ctx,
                                            const char *fmt, ...)
 {
-    char buf[FIXTURE_DEFAULT_COMMAND_OUTPUT_BUFFER_SIZE];
+    char buf[FIXTURE_DEFAULT_CLI_OUTPUT_BUFFER_SIZE];
     va_list args;
 
     if (ctx == NULL || ctx->output == NULL)
@@ -181,7 +181,7 @@ static bool fixture_default_spi_loopback_command_handler(const app_command_ctx_t
                                                          char *args,
                                                          void *user_ctx)
 {
-    /* Alternating bit patterns + mixed values for basic loopback coverage. */
+    /* 0x55/0xAA = alternating bits, 0x12/0x34 = mixed bytes for order sanity. */
     static const uint8_t tx_data[FIXTURE_DEFAULT_SPI_TEST_DATA_SIZE] = {0x55, 0xAA, 0x12, 0x34};
     uint8_t rx_data[FIXTURE_DEFAULT_SPI_TEST_DATA_SIZE] = {0};
     spi_bus_t bus = {0};
