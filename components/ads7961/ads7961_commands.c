@@ -123,9 +123,24 @@ static bool ads7961_handle_help(const app_command_ctx_t *cmd_ctx, char *args)
         return true;
     }
 
-    app_commands_respond_ok_with_count(cmd_ctx->output, 3U);
+    app_commands_respond_ok_with_count(cmd_ctx->output, 18U);
     ads7961_cmd_printf(cmd_ctx->output, "ADC:HELP\r\n");
-    ads7961_cmd_printf(cmd_ctx->output, "ADC:READ-CH <0..15>\r\n");
+    ads7961_cmd_printf(cmd_ctx->output, "ADC:READ-CH 0  (MTR1-TEMP)\r\n");
+    ads7961_cmd_printf(cmd_ctx->output, "ADC:READ-CH 1  (MTR2-TEMP)\r\n");
+    ads7961_cmd_printf(cmd_ctx->output, "ADC:READ-CH 2  (MTR3-TEMP)\r\n");
+    ads7961_cmd_printf(cmd_ctx->output, "ADC:READ-CH 3  (MTR4-TEMP)\r\n");
+    ads7961_cmd_printf(cmd_ctx->output, "ADC:READ-CH 4  (PHD-DOT-CAL-EN)\r\n");
+    ads7961_cmd_printf(cmd_ctx->output, "ADC:READ-CH 5  (NetJ11_10)\r\n");
+    ads7961_cmd_printf(cmd_ctx->output, "ADC:READ-CH 6  (PHD-TEMP)\r\n");
+    ads7961_cmd_printf(cmd_ctx->output, "ADC:READ-CH 7  (GND)\r\n");
+    ads7961_cmd_printf(cmd_ctx->output, "ADC:READ-CH 8  (PH-VOLTS)\r\n");
+    ads7961_cmd_printf(cmd_ctx->output, "ADC:READ-CH 9  (+3V3F\r\n");
+    ads7961_cmd_printf(cmd_ctx->output, "ADC:READ-CH 10 (+5VF)\r\n");
+    ads7961_cmd_printf(cmd_ctx->output, "ADC:READ-CH 11 ()\r\n");
+    ads7961_cmd_printf(cmd_ctx->output, "ADC:READ-CH 12 ()\r\n");
+    ads7961_cmd_printf(cmd_ctx->output, "ADC:READ-CH 13 ()\r\n");
+    ads7961_cmd_printf(cmd_ctx->output, "ADC:READ-CH 14 ()\r\n");
+    ads7961_cmd_printf(cmd_ctx->output, "ADC:READ-CH 15 (GND)\r\n");
     ads7961_cmd_printf(cmd_ctx->output, "ADC:READAVG-CH <0..15>\r\n");
     return true;
 }
