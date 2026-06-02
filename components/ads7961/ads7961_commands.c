@@ -186,7 +186,7 @@ static bool ads7961_handle_readavg_ch(const app_command_ctx_t *cmd_ctx,
 {
     uint8_t channel = 0U;
     float avg_volts = 0.0f;
-    float avg_code8 = 0.0f;
+    float avg_code_value = 0.0f;
     esp_err_t err;
 
     if (args == NULL)
@@ -205,7 +205,7 @@ static bool ads7961_handle_readavg_ch(const app_command_ctx_t *cmd_ctx,
         return true;
     }
 
-    err = ads7961_read_channel_avg(ctx, channel, &avg_volts, &avg_code8);
+    err = ads7961_read_channel_avg(ctx, channel, &avg_volts, &avg_code_value);
     if (err != ESP_OK)
     {
         ads7961_cmd_respond_error(cmd_ctx->output,
