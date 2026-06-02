@@ -1,0 +1,11 @@
+idf_component_register(
+    SRCS
+        "ads7961.c"
+        "ads7961_commands.c"
+    INCLUDE_DIRS
+        "include"
+    PRIV_INCLUDE_DIRS
+        "../../include"
+    REQUIRES
+        spi_bus
+)
