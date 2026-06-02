@@ -102,6 +102,15 @@ esp_err_t ads7961_read_channel_avg(ads7961_t *ctx,
                                    float *out_avg_code8);
 
 /**
+ * @brief Register ADS7961 CLI commands into app_commands subsystem.
+ *
+ * Implemented in: components/ads7961/ads7961_commands.c
+ *
+ * @param ctx Initialized device context.
+ */
+void ads7961_register_commands(ads7961_t *ctx);
+
+/**
  * @brief Convert 8-bit ADC code to voltage using configured reference.
  *
  * Implemented in: components/ads7961/ads7961.c

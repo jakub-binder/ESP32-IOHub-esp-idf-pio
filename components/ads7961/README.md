@@ -27,6 +27,8 @@ z fixtury (komponenta neinicializuje SPI bus ani nevytváří SPI zařízení).
   - čtení kanálu s pipeline sekvencí (3× transfer, výsledek z posledního RX)
 - `esp_err_t ads7961_read_channel_avg(ads7961_t *ctx, uint8_t channel, float *out_avg_volts, float *out_avg_code8);`
   - 40 vzorků s trimem 4 (stejné chování jako Arduino reference)
+- `void ads7961_register_commands(ads7961_t *ctx);`
+  - registruje CLI příkazy `ADC:HELP`, `ADC:READ-CH`, `ADC:READAVG-CH`
 - `esp_err_t ads7961_code8_to_volts(const ads7961_t *ctx, uint8_t code8, float *out_volts);`
   - přepočet na volty s podporou `range2x_ref` a `refp_volts`
 - `uint16_t ads7961_build_manual_cmd(const ads7961_t *ctx, uint8_t channel);`
