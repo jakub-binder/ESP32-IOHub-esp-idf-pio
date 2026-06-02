@@ -13,6 +13,10 @@
 #define ADS7961_AVG_TOTAL_SAMPLES      40
 #define ADS7961_AVG_TRIM_SAMPLES       4
 
+#if (ADS7961_AVG_TOTAL_SAMPLES <= (2 * ADS7961_AVG_TRIM_SAMPLES))
+#error "ADS7961 averaging configuration is invalid"
+#endif
+
 static const char *const ADS7961_TAG = "ads7961";
 
 static bool ads7961_is_ready(const ads7961_t *ctx)
@@ -105,9 +109,15 @@ bool ads7961_is_initialized(const ads7961_t *ctx)
 uint16_t ads7961_build_manual_cmd(const ads7961_t *ctx, uint8_t channel)
 {
     const bool range2x_ref = (ctx != NULL) && ctx->range2x_ref;
-    const uint16_t ch_bits = (uint16_t)(channel & ADS7961_CMD_CHANNEL_MASK);
     uint16_t cmd = ADS7961_CMD_BASE;
 
+    if (!ads7961_channel_is_valid(channel))
+    {
+        ESP_LOGE(ADS7961_TAG, "invalid channel for command: %u", (unsigned)channel);
+        return 0U;
+    }
+
+    const uint16_t ch_bits = (uint16_t)(channel & ADS7961_CMD_CHANNEL_MASK);
     cmd |= (uint16_t)(ch_bits << ADS7961_CMD_CHANNEL_SHIFT);
     if (range2x_ref)
     {
@@ -127,16 +137,29 @@ uint8_t ads7961_extract_data8(uint16_t rx)
     return (uint8_t)((rx >> 4U) & 0xFFU);
 }
 
-float ads7961_code8_to_volts(const ads7961_t *ctx, uint8_t code8)
+esp_err_t ads7961_code8_to_volts(const ads7961_t *ctx,
+                                 uint8_t code8,
+                                 float *out_volts)
 {
     const float vfs = ads7961_vfs(ctx);
 
-    if (vfs <= 0.0f)
+    if (out_volts == NULL)
     {
-        return 0.0f;
+        return ESP_ERR_INVALID_ARG;
     }
 
-    return (float)code8 * (vfs / 255.0f);
+    if (ctx == NULL || !ctx->initialized || !ads7961_refp_is_valid(ctx->refp_volts))
+    {
+        return ESP_ERR_INVALID_STATE;
+    }
+
+    if (vfs <= 0.0f)
+    {
+        return ESP_ERR_INVALID_STATE;
+    }
+
+    *out_volts = (float)code8 * (vfs / 255.0f);
+    return ESP_OK;
 }
 
 esp_err_t ads7961_read_channel(ads7961_t *ctx,
@@ -218,12 +241,6 @@ esp_err_t ads7961_read_channel_avg(ads7961_t *ctx,
     if (!ads7961_channel_is_valid(channel))
     {
         return ESP_ERR_INVALID_ARG;
-    }
-
-    if (used <= 0)
-    {
-        ESP_LOGE(ADS7961_TAG, "invalid averaging parameters: total=%d trim=%d", total, trim);
-        return ESP_ERR_INVALID_STATE;
     }
 
     cmd = ads7961_build_manual_cmd(ctx, channel);

@@ -108,9 +108,12 @@ esp_err_t ads7961_read_channel_avg(ads7961_t *ctx,
  *
  * @param ctx Initialized device context.
  * @param code8 8-bit ADC code.
- * @return Converted voltage in volts (0.0f when context is invalid).
+ * @param out_volts Output pointer for converted voltage.
+ * @return ESP_OK on success, otherwise esp_err_t error code.
  */
-float ads7961_code8_to_volts(const ads7961_t *ctx, uint8_t code8);
+esp_err_t ads7961_code8_to_volts(const ads7961_t *ctx,
+                                 uint8_t code8,
+                                 float *out_volts);
 
 /**
  * @brief Build ADS7961 manual command word for selected channel.
@@ -121,7 +124,7 @@ float ads7961_code8_to_volts(const ads7961_t *ctx, uint8_t code8);
  *
  * @param ctx Initialized device context.
  * @param channel Channel index (0..15).
- * @return 16-bit command word.
+ * @return 16-bit command word (0 when channel is invalid).
  */
 uint16_t ads7961_build_manual_cmd(const ads7961_t *ctx, uint8_t channel);
 
