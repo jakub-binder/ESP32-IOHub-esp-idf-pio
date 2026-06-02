@@ -1,14 +1,10 @@
 #include "fixtures/fixture_default.h"
 
-#include <stdarg.h>
-#include <stdio.h>
-#include <string.h>
-
 #include "esp_timer.h"
 
-#include "app_commands.h"
 #include "app_config.h"
 #include "app_log.h"
+#include "ads7961.h"
 #include "board/board_pins.h"
 #include "eeprom_24cs02.h"
 #include "gpio_debug.h"
@@ -21,13 +17,14 @@ static gpio_debug_t g_gpio_debug;
 static i2c_bus_t g_i2c_bus;
 static eeprom_24cs02_t g_eeprom_24cs02;
 static temp_lm75bdp_t g_temp_lm75bdp;
+static spi_bus_t g_spi_bus;
+static spi_device_t g_ads7961_spi_dev;
+static ads7961_t g_ads7961;
 
 #define FIXTURE_DEFAULT_I2C_PORT          I2C_NUM_0
 #define FIXTURE_DEFAULT_I2C_FREQ_HZ       100000
-#define FIXTURE_DEFAULT_CLI_OUTPUT_BUFFER_SIZE 256U
 #define FIXTURE_DEFAULT_SPI_CLOCK_HZ      1000000U
 #define FIXTURE_DEFAULT_SPI_MODE          0U
-#define FIXTURE_DEFAULT_SPI_TEST_DATA_SIZE 4U
 
 #if defined(BOARD_HAS_VSPI) && BOARD_HAS_VSPI
 #define FIXTURE_DEFAULT_SPI_HOST          SPI3_HOST
@@ -46,10 +43,6 @@ static temp_lm75bdp_t g_temp_lm75bdp;
 static void fixture_default_setup_impl(void);
 static void fixture_default_loop_impl(void);
 static void fixture_default_register_commands_impl(void);
-static bool fixture_default_spi_loopback_command_handler(const app_command_ctx_t *ctx,
-                                                         const char *cmd,
-                                                         char *args,
-                                                         void *user_ctx);
 
 const fixture_t fixture_default =
 {
@@ -125,6 +118,52 @@ static void fixture_default_setup_impl(void)
         APP_LOGW(APP_FIXTURE_LOG_TAG, "EEPROM init skipped: I2C bus not ready");
         APP_LOGW(APP_FIXTURE_LOG_TAG, "LM75BDP init skipped: I2C bus not ready");
     }
+
+#if defined(FIXTURE_DEFAULT_SPI_HOST)
+    const spi_bus_cfg_t spi_bus_cfg = {
+        .host_id = FIXTURE_DEFAULT_SPI_HOST,
+        .sclk_pin = FIXTURE_DEFAULT_SPI_SCK_PIN,
+        .mosi_pin = FIXTURE_DEFAULT_SPI_MOSI_PIN,
+        .miso_pin = FIXTURE_DEFAULT_SPI_MISO_PIN,
+    };
+    const spi_device_cfg_t ads7961_spi_cfg = {
+        .bus = &g_spi_bus,
+        .cs_pin = FIXTURE_DEFAULT_SPI_CS_PIN,
+        .mode = FIXTURE_DEFAULT_SPI_MODE,
+        .clock_hz = FIXTURE_DEFAULT_SPI_CLOCK_HZ,
+    };
+    const ads7961_cfg_t ads7961_cfg = {
+        .spi_dev = &g_ads7961_spi_dev,
+        .refp_volts = 2.5f,
+        .range2x_ref = true,
+    };
+
+    err = spi_bus_init(&g_spi_bus, &spi_bus_cfg);
+    if (err != ESP_OK)
+    {
+        APP_LOGE(APP_FIXTURE_LOG_TAG, "spi_bus_init failed: %d", (int)err);
+    }
+
+    if (spi_bus_is_initialized(&g_spi_bus))
+    {
+        err = spi_device_init(&g_ads7961_spi_dev, &ads7961_spi_cfg);
+        if (err != ESP_OK)
+        {
+            APP_LOGE(APP_FIXTURE_LOG_TAG, "ads7961 spi_device_init failed: %d", (int)err);
+        }
+    }
+
+    if (spi_device_is_initialized(&g_ads7961_spi_dev))
+    {
+        err = ads7961_init(&g_ads7961, &ads7961_cfg);
+        if (err != ESP_OK)
+        {
+            APP_LOGE(APP_FIXTURE_LOG_TAG, "ads7961_init failed: %d", (int)err);
+        }
+    }
+#else
+    APP_LOGW(APP_FIXTURE_LOG_TAG, "ADS7961 init skipped: SPI host not available");
+#endif
 }
 
 static void fixture_default_loop_impl(void)
@@ -139,150 +178,6 @@ static void fixture_default_loop_impl(void)
     }
 }
 
-static void fixture_default_command_printf(const app_command_ctx_t *ctx,
-                                           const char *fmt, ...)
-{
-    char buf[FIXTURE_DEFAULT_CLI_OUTPUT_BUFFER_SIZE];
-    va_list args;
-
-    if (ctx == NULL || ctx->output == NULL)
-    {
-        return;
-    }
-
-    va_start(args, fmt);
-    vsnprintf(buf, sizeof(buf), fmt, args);
-    va_end(args);
-    ctx->output(buf);
-}
-
-static void fixture_default_print_bytes(const app_command_ctx_t *ctx,
-                                        const char *label,
-                                        const uint8_t *data,
-                                        size_t length)
-{
-    size_t i;
-
-    if (ctx == NULL || ctx->output == NULL || label == NULL || data == NULL)
-    {
-        return;
-    }
-
-    fixture_default_command_printf(ctx, "%s", label);
-    for (i = 0; i < length; i++)
-    {
-        fixture_default_command_printf(ctx, "%s%02X", (i == 0) ? "" : " ", data[i]);
-    }
-    fixture_default_command_printf(ctx, "\r\n");
-}
-
-static bool fixture_default_spi_loopback_command_handler(const app_command_ctx_t *ctx,
-                                                         const char *cmd,
-                                                         char *args,
-                                                         void *user_ctx)
-{
-    /* 0x55/0xAA = alternating bits, 0x12/0x34 = mixed bytes for order sanity. */
-    static const uint8_t tx_data[FIXTURE_DEFAULT_SPI_TEST_DATA_SIZE] = {0x55, 0xAA, 0x12, 0x34};
-    uint8_t rx_data[FIXTURE_DEFAULT_SPI_TEST_DATA_SIZE] = {0};
-    spi_bus_t bus = {0};
-    spi_device_t dev = {0};
-    bool match = false;
-    esp_err_t err;
-
-    (void)args;
-    (void)user_ctx;
-
-    if (ctx == NULL || cmd == NULL)
-    {
-        return false;
-    }
-
-    if (strcmp(cmd, "spi-loopback-test") != 0)
-    {
-        return false;
-    }
-
-    if (!ctx->allow_debug_commands)
-    {
-        fixture_default_command_printf(ctx, "ERR not allowed\r\n");
-        return true;
-    }
-
-#if !defined(FIXTURE_DEFAULT_SPI_HOST)
-    fixture_default_command_printf(ctx, "FAIL\r\n");
-    fixture_default_command_printf(ctx, "ERR SPI host not available\r\n");
-    return true;
-#else
-    const spi_bus_cfg_t bus_cfg = {
-        .host_id = FIXTURE_DEFAULT_SPI_HOST,
-        .sclk_pin = FIXTURE_DEFAULT_SPI_SCK_PIN,
-        .mosi_pin = FIXTURE_DEFAULT_SPI_MOSI_PIN,
-        .miso_pin = FIXTURE_DEFAULT_SPI_MISO_PIN,
-    };
-    const spi_device_cfg_t dev_cfg = {
-        .bus = &bus,
-        .cs_pin = FIXTURE_DEFAULT_SPI_CS_PIN,
-        .mode = FIXTURE_DEFAULT_SPI_MODE,
-        .clock_hz = FIXTURE_DEFAULT_SPI_CLOCK_HZ,
-    };
-
-    err = spi_bus_init(&bus, &bus_cfg);
-    if (err != ESP_OK)
-    {
-        fixture_default_command_printf(ctx, "FAIL\r\n");
-        fixture_default_command_printf(ctx, "ERR spi_bus_init=%d\r\n", (int)err);
-        goto cleanup_spi;
-    }
-
-    err = spi_device_init(&dev, &dev_cfg);
-    if (err != ESP_OK)
-    {
-        fixture_default_command_printf(ctx, "FAIL\r\n");
-        fixture_default_command_printf(ctx, "ERR spi_device_init=%d\r\n", (int)err);
-        goto cleanup_spi;
-    }
-
-    err = spi_device_transfer(&dev, tx_data, rx_data, sizeof(tx_data));
-    if (err != ESP_OK)
-    {
-        fixture_default_command_printf(ctx, "FAIL\r\n");
-        fixture_default_command_printf(ctx, "ERR spi_device_transfer=%d\r\n", (int)err);
-        goto cleanup_spi;
-    }
-
-    match = (memcmp(tx_data, rx_data, sizeof(tx_data)) == 0);
-    if (match)
-    {
-        fixture_default_command_printf(ctx, "PASS\r\n");
-    }
-    else
-    {
-        fixture_default_command_printf(ctx, "FAIL\r\n");
-        fixture_default_print_bytes(ctx, "TX: ", tx_data, sizeof(tx_data));
-        fixture_default_print_bytes(ctx, "RX: ", rx_data, sizeof(rx_data));
-    }
-
-cleanup_spi:
-    if (spi_device_is_initialized(&dev))
-    {
-        err = spi_device_deinit(&dev);
-        if (err != ESP_OK)
-        {
-            fixture_default_command_printf(ctx, "ERR spi_device_deinit=%d\r\n", (int)err);
-        }
-    }
-    if (spi_bus_is_initialized(&bus))
-    {
-        err = spi_bus_deinit(&bus);
-        if (err != ESP_OK)
-        {
-            fixture_default_command_printf(ctx, "ERR spi_bus_deinit=%d\r\n", (int)err);
-        }
-    }
-    return true;
-#endif
-}
-
 static void fixture_default_register_commands_impl(void)
 {
     const esp_err_t err = gpio_debug_register_commands(&g_gpio_debug);
@@ -293,9 +188,5 @@ static void fixture_default_register_commands_impl(void)
 
     eeprom_24cs02_register_commands(&g_eeprom_24cs02);
     temp_lm75bdp_register_commands(&g_temp_lm75bdp);
-
-    if (!app_commands_register_custom_handler(fixture_default_spi_loopback_command_handler, NULL))
-    {
-        APP_LOGE(APP_FIXTURE_LOG_TAG, "spi-loopback-test register failed");
-    }
+    ads7961_register_commands(&g_ads7961);
 }
