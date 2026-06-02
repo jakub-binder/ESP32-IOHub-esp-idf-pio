@@ -108,6 +108,12 @@ static bool ads7961_is_supported_command(const char *cmd)
 
 static bool ads7961_handle_help(const app_command_ctx_t *cmd_ctx, char *args)
 {
+    if (args == NULL)
+    {
+        ads7961_cmd_respond_error(cmd_ctx->output, "Usage: ADC:HELP");
+        return true;
+    }
+
     char *saveptr = NULL;
     char *extra = strtok_r(args, " \t", &saveptr);
 
@@ -128,13 +134,20 @@ static bool ads7961_handle_read_ch(const app_command_ctx_t *cmd_ctx,
                                    ads7961_t *ctx,
                                    char *args)
 {
-    char *saveptr = NULL;
-    char *channel_str = strtok_r(args, " \t", &saveptr);
-    char *extra = strtok_r(NULL, " \t", &saveptr);
     uint8_t channel = 0U;
     uint8_t code8 = 0U;
     float volts = 0.0f;
     esp_err_t err;
+
+    if (args == NULL)
+    {
+        ads7961_cmd_respond_error(cmd_ctx->output, "Usage: ADC:READ-CH <0..15>");
+        return true;
+    }
+
+    char *saveptr = NULL;
+    char *channel_str = strtok_r(args, " \t", &saveptr);
+    char *extra = strtok_r(NULL, " \t", &saveptr);
 
     if (extra != NULL || !ads7961_parse_channel(channel_str, &channel))
     {
@@ -171,13 +184,20 @@ static bool ads7961_handle_readavg_ch(const app_command_ctx_t *cmd_ctx,
                                       ads7961_t *ctx,
                                       char *args)
 {
-    char *saveptr = NULL;
-    char *channel_str = strtok_r(args, " \t", &saveptr);
-    char *extra = strtok_r(NULL, " \t", &saveptr);
     uint8_t channel = 0U;
     float avg_volts = 0.0f;
     float avg_code8 = 0.0f;
     esp_err_t err;
+
+    if (args == NULL)
+    {
+        ads7961_cmd_respond_error(cmd_ctx->output, "Usage: ADC:READAVG-CH <0..15>");
+        return true;
+    }
+
+    char *saveptr = NULL;
+    char *channel_str = strtok_r(args, " \t", &saveptr);
+    char *extra = strtok_r(NULL, " \t", &saveptr);
 
     if (extra != NULL || !ads7961_parse_channel(channel_str, &channel))
     {
